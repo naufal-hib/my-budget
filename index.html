@@ -470,7 +470,16 @@ input[type=range] { accent-color: var(--accent2); width: 100%; height: 4px; }
     <div class="form-group">
       <label class="form-label">Personal Access Token</label>
       <input id="setup-token" class="inp" type="password" placeholder="ghp_xxxxxxxxxxxx">
-      <div class="text-xs text-muted mt4">Settings → Developer Settings → Personal Access Tokens (Scopes: repo)</div>
+      <div class="card-sm" style="background:rgba(96,165,250,.08);border-color:rgba(96,165,250,.2);margin-top:8px">
+        <div class="text-xs" style="color:var(--blue);line-height:1.8">
+          1. Buka <b>github.com</b> → klik foto profil → <b>Settings</b><br>
+          2. Scroll bawah → <b>Developer settings</b><br>
+          3. <b>Personal access tokens → Tokens (classic)</b><br>
+          4. <b>Generate new token (classic)</b><br>
+          5. Centang scope: ✅ <b>repo</b><br>
+          6. Klik Generate → Copy tokennya
+        </div>
+      </div>
     </div>
     <div class="card-sm" style="background:rgba(96,165,250,.08);border-color:rgba(96,165,250,.2);margin-bottom:16px">
       <div class="text-xs" style="color:var(--blue)">ℹ️ Token hanya tersimpan di device kamu (localStorage). Tidak dikirim ke server lain.</div>
@@ -871,9 +880,15 @@ input[type=range] { accent-color: var(--accent2); width: 100%; height: 4px; }
           <label class="form-label">Branch</label>
           <input id="set-branch" class="inp" value="main">
         </div>
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-ghost" style="flex:1;font-size:12px" onclick="testGithubConnection()">Test Koneksi</button>
-          <button class="btn btn-ghost" style="flex:1;font-size:12px" onclick="syncNow()">Sync Sekarang</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost" style="flex:1;font-size:12px;min-width:120px" onclick="testGithubConnection()">🔍 Test Koneksi</button>
+          <button class="btn btn-ghost" style="flex:1;font-size:12px;min-width:120px" onclick="syncNow()">⟳ Sync Sekarang</button>
+        </div>
+        <div class="card-sm" style="background:rgba(96,165,250,.06);border-color:rgba(96,165,250,.2);margin-top:8px">
+          <div class="text-xs" style="color:var(--blue);line-height:1.6">
+            <b>Tips Token:</b> Buat di GitHub → Settings → Developer Settings → Personal Access Tokens (Classic) → Generate new token → centang scope <b>repo</b> → Copy token.<br>
+            <b>Format repo:</b> <code>username/nama-repo</code> (tanpa github.com)
+          </div>
         </div>
       </div>
 
@@ -1003,40 +1018,129 @@ const DB = (() => {
 
   // ── Load from GitHub ──────────────────────────────────────
   async function pull() {
+    const repo = cfg().repo;
+    const token = cfg().token;
+    if (!repo || !token) return { ok: false, error: 'Repo/token belum diisi' };
     try {
-      const r = await fetch(apiBase() + `?ref=${cfg().branch || 'main'}&t=${Date.now()}`, { headers: headers() });
-      if (!r.ok) throw new Error(`GitHub ${r.status}: ${r.statusText}`);
+      const url = `https://api.github.com/repos/${repo}/contents/${cfg().dbPath || 'data/db.json'}?ref=${cfg().branch || 'main'}&t=${Date.now()}`;
+      const r = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `token ${token}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+      if (r.status === 404) {
+        // File belum ada di repo - akan dibuat saat push
+        console.log('db.json belum ada di repo, akan dibuat saat push pertama');
+        _sha = null;
+        _saveLocal();
+        return { ok: true, created: true };
+      }
+      if (!r.ok) {
+        const errBody = await r.text();
+        throw new Error(`GitHub ${r.status}: ${errBody}`);
+      }
       const j = await r.json();
       _sha = j.sha;
-      const decoded = JSON.parse(atob(j.content.replace(/\n/g, '')));
-      _data = decoded;
-      _saveLocal();
+      // Handle file kosong atau isi tidak valid
+      let decoded = {};
+      try {
+        const raw = atob(j.content.replace(/\n/g, ''));
+        if (raw && raw.trim() !== '' && raw.trim() !== '{}') {
+          decoded = JSON.parse(raw);
+        }
+      } catch(parseErr) {
+        console.warn('db.json tidak valid, anggap kosong');
+      }
+      if (decoded && decoded.meta) {
+        _data = decoded;
+        _saveLocal();
+      }
       return { ok: true };
     } catch (e) {
-      console.warn('GitHub pull failed, using local:', e.message);
+      console.warn('GitHub pull failed:', e.message);
       return { ok: false, error: e.message };
     }
   }
 
   // ── Push to GitHub ────────────────────────────────────────
   async function push() {
+    const repo = cfg().repo;
+    const token = cfg().token;
+    if (!repo || !token) return { ok: false, error: 'Repo/token belum diisi di pengaturan' };
     try {
-      const content = btoa(unescape(encodeURIComponent(JSON.stringify(_data, null, 2))));
+      // Kalau belum punya SHA, coba fetch dulu untuk dapat SHA
+      if (!_sha) {
+        const checkUrl = `https://api.github.com/repos/${repo}/contents/${cfg().dbPath || 'data/db.json'}`;
+        const checkR = await fetch(checkUrl, {
+          headers: {
+            'Authorization': `token ${token}`,
+            'Accept': 'application/vnd.github.v3+json'
+          }
+        });
+        if (checkR.ok) {
+          const checkJ = await checkR.json();
+          _sha = checkJ.sha;
+        }
+        // Kalau 404 berarti file belum ada, push sebagai file baru (tidak perlu SHA)
+      }
+
+      // Encode content
+      const jsonStr = JSON.stringify(_data, null, 2);
+      // Gunakan TextEncoder untuk handle karakter unicode (emoji, dll)
+      const bytes = new TextEncoder().encode(jsonStr);
+      let binary = '';
+      bytes.forEach(b => binary += String.fromCharCode(b));
+      const content = btoa(binary);
+
       const body = {
         message: `Dompet Ku update ${new Date().toISOString()}`,
-        content,
+        content: content,
         branch: cfg().branch || 'main'
       };
       if (_sha) body.sha = _sha;
-      const r = await fetch(apiBase(), {
+
+      const url = `https://api.github.com/repos/${repo}/contents/${cfg().dbPath || 'data/db.json'}`;
+      const r = await fetch(url, {
         method: 'PUT',
-        headers: headers(),
+        headers: {
+          'Authorization': `token ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/vnd.github.v3+json'
+        },
         body: JSON.stringify(body)
       });
+
       if (!r.ok) {
-        const err = await r.json();
-        throw new Error(err.message || `GitHub ${r.status}`);
+        const errBody = await r.json().catch(() => ({}));
+        const errMsg = errBody.message || `HTTP ${r.status}`;
+        // Jika konflik SHA (422), coba fetch SHA terbaru lalu retry sekali
+        if (r.status === 422 || r.status === 409) {
+          console.warn('SHA konflik, retry dengan SHA terbaru...');
+          const retryCheck = await fetch(url, {
+            headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+          });
+          if (retryCheck.ok) {
+            const retryJ = await retryCheck.json();
+            _sha = retryJ.sha;
+            body.sha = _sha;
+            const retryR = await fetch(url, {
+              method: 'PUT',
+              headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' },
+              body: JSON.stringify(body)
+            });
+            if (retryR.ok) {
+              const retryJ2 = await retryR.json();
+              _sha = retryJ2.content.sha;
+              _saveLocal();
+              return { ok: true };
+            }
+          }
+        }
+        throw new Error(errMsg);
       }
+
       const j = await r.json();
       _sha = j.content.sha;
       _saveLocal();
@@ -1979,6 +2083,9 @@ async function finishSetup() {
 
   if (!repo || !token) { Utils.showToast('Repo dan token GitHub wajib diisi!', 'error'); return; }
 
+  // Validasi format repo
+  if (!repo.includes('/')) { Utils.showToast('Format repo harus: username/nama-repo', 'error'); return; }
+
   const accounts = [];
   const accInputs = document.querySelectorAll('.setup-acc-row');
   accInputs.forEach(row => {
@@ -1989,22 +2096,49 @@ async function finishSetup() {
     if (nama) accounts.push({ id: Utils.uid('ACC'), nama, tipe, saldoAwal: saldo, saldoSekarang: saldo, warna, status: 'Aktif' });
   });
 
+  // Init data lokal dulu
   DB.initFresh({ repo, token, ownerName: name, waKey, waNumber: waNum, accounts, useDefaultCategories: true });
-
-  Utils.showLoading('Membuat database...');
 
   if (waKey && waNum) {
     DB.saveConfig('whatsapp.enabled', true);
     DB.saveConfig('whatsapp.number', waNum);
   }
 
+  // Test koneksi dulu
+  Utils.showLoading('Mengecek koneksi GitHub...');
+  try {
+    const testR = await fetch(`https://api.github.com/repos/${repo}`, {
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+    if (!testR.ok) {
+      Utils.hideLoading();
+      if (testR.status === 401) {
+        Utils.showToast('Token tidak valid! Cek lagi Personal Access Token kamu.', 'error');
+      } else if (testR.status === 404) {
+        Utils.showToast('Repo tidak ditemukan! Pastikan nama repo benar dan repo sudah dibuat.', 'error');
+      } else {
+        Utils.showToast(`GitHub error ${testR.status} - cek repo dan token`, 'error');
+      }
+      return;
+    }
+  } catch(netErr) {
+    Utils.hideLoading();
+    Utils.showToast('Tidak bisa konek ke GitHub. Cek koneksi internet kamu.', 'error');
+    return;
+  }
+
+  Utils.showLoading('Menyimpan database ke GitHub...');
   const r = await DB.push();
   Utils.hideLoading();
 
   if (r.ok) {
     Utils.showToast('Setup berhasil! Selamat datang 🎉', 'success');
   } else {
-    Utils.showToast('GitHub gagal, tapi data tersimpan lokal', 'warning');
+    Utils.showToast('Gagal simpan ke GitHub: ' + r.error, 'error');
+    // Tetap lanjut ke app, data ada di lokal
   }
 
   DB.syncAllocations();
@@ -2749,26 +2883,60 @@ async function testGithubConnection() {
   const repo = document.getElementById('set-repo')?.value?.trim();
   const token = document.getElementById('set-token')?.value?.trim();
   if (!repo || !token) { Utils.showToast('Isi repo dan token dulu!', 'error'); return; }
-  Utils.showLoading('Menguji koneksi...');
+  if (!repo.includes('/')) { Utils.showToast('Format: username/repo-name', 'error'); return; }
+  Utils.showLoading('Menguji koneksi GitHub...');
   try {
-    const r = await fetch(`https://api.github.com/repos/${repo}`, {
-      headers: { 'Authorization': `token ${token}` }
+    // Test 1: Cek repo
+    const r1 = await fetch(`https://api.github.com/repos/${repo}`, {
+      headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
     });
+    if (!r1.ok) {
+      Utils.hideLoading();
+      if (r1.status === 401) Utils.showToast('❌ Token tidak valid / expired', 'error');
+      else if (r1.status === 404) Utils.showToast('❌ Repo tidak ditemukan. Nama repo benar?', 'error');
+      else Utils.showToast(`❌ Error ${r1.status}: ${r1.statusText}`, 'error');
+      return;
+    }
+    const repoData = await r1.json();
+
+    // Test 2: Cek file db.json
+    const r2 = await fetch(`https://api.github.com/repos/${repo}/contents/data/db.json`, {
+      headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+    });
+
     Utils.hideLoading();
-    if (r.ok) Utils.showToast('GitHub terhubung ✓', 'success');
-    else Utils.showToast('Gagal: ' + r.status + ' ' + r.statusText, 'error');
+    if (r2.ok) {
+      const f = await r2.json();
+      Utils.showToast(`✅ Terhubung! Repo: ${repoData.full_name} · db.json ditemukan (${f.size} bytes)`, 'success');
+    } else if (r2.status === 404) {
+      Utils.showToast(`✅ Repo OK! Tapi data/db.json belum ada — akan dibuat otomatis saat pertama simpan`, 'warning');
+    } else {
+      Utils.showToast(`✅ Repo OK tapi gagal cek db.json: ${r2.status}`, 'warning');
+    }
   } catch (e) {
     Utils.hideLoading();
-    Utils.showToast('Error: ' + e.message, 'error');
+    Utils.showToast('❌ Tidak bisa konek: ' + e.message, 'error');
   }
 }
 
 async function syncNow() {
-  Utils.showLoading('Sinkronisasi...');
+  const cfg = DB.getConfig();
+  if (!cfg.github?.repo || !cfg.github?.token) {
+    Utils.showToast('⚠️ Isi dulu GitHub repo dan token di Pengaturan!', 'warning');
+    goTo('settings');
+    return;
+  }
+  Utils.showLoading('Sinkronisasi dari GitHub...');
   const r = await DB.pull();
   Utils.hideLoading();
-  if (r.ok) { DB.syncAllocations(); renderAll(); Utils.showToast('Sinkronisasi berhasil ✓', 'success'); }
-  else Utils.showToast('Sinkronisasi gagal: ' + r.error, 'error');
+  if (r.ok) {
+    DB.syncAllocations();
+    renderAll();
+    if (r.created) Utils.showToast('db.json belum ada di repo — akan dibuat saat pertama simpan data', 'warning');
+    else Utils.showToast('Sinkronisasi berhasil ✓', 'success');
+  } else {
+    Utils.showToast('❌ Sinkronisasi gagal: ' + r.error, 'error');
+  }
 }
 
 // ── REPORTS ──────────────────────────────────────────────
