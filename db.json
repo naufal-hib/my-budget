@@ -1,1 +1,247 @@
-{}
+{
+  "meta": {
+    "version": "3.0.0",
+    "created": "2026-05-03",
+    "currency": "IDR",
+    "dateFormat": "DD/MM/YYYY",
+    "activePeriod": "2026-05"
+  },
+  "config": {
+    "appName": "Dompet Ku",
+    "ownerName": "Naufal",
+    "github": {
+      "repo": "naufal-hib/my-budget",
+      "token": "",
+      "branch": "main",
+      "dbPath": "db.json"
+    },
+    "whatsapp": {
+      "enabled": true,
+      "provider": "fonnte",
+      "apiKey": "7SEQkePggBZBXsZiNGTc",
+      "number": "62895397978257",
+      "templates": {
+        "daily": "📊 *RINGKASAN HARIAN*\n{tanggal}\n\n💰 Masuk: {pemasukan}\n💸 Keluar: {pengeluaran}\n💵 Saldo: {saldo}\n\nTop Pengeluaran:\n{top_kategori}\n\n{pesan_motivasi}",
+        "weekly": "📈 *RINGKASAN MINGGUAN*\nMinggu {minggu_ke}, {bulan}\n\n💰 Masuk: {pemasukan}\n💸 Keluar: {pengeluaran}\n💵 Saldo: {saldo}\n\nKategori Terbesar:\n{top_kategori}\n\n{pesan_motivasi}",
+        "monthly": "📋 *LAPORAN BULANAN*\nPeriode: {periode}\n\n💰 Pemasukan: {pemasukan}\n💸 Pengeluaran: {pengeluaran}\n💵 Saving Rate: {saving_rate}%\n\n📊 Per Jatah:\n{detail_jatah}\n\n{pesan_motivasi}",
+        "budgetWarning": "⚠️ *JATAH HAMPIR HABIS*\n\nJatah *{nama_jatah}* sudah {persen}% terpakai!\n💰 Alokasi: {alokasi}\n💸 Terpakai: {terpakai}\n💵 Sisa: {sisa}\n\nBijak ya dalam belanja 🙏",
+        "debtReminder": "🔔 *REMINDER UTANG*\n\nHai! Utang ke *{nama_pihak}* jatuh tempo {hari} hari lagi.\n\n📅 Jatuh Tempo: {jatuh_tempo}\n💰 Sisa: {sisa}\n\nJangan lupa ya! 💪"
+      },
+      "schedule": {
+        "dailyEnabled": true,
+        "dailyTime": "08:00",
+        "weeklyEnabled": true,
+        "weeklyDay": "1",
+        "weeklyTime": "07:00",
+        "monthlyEnabled": true,
+        "monthlyDay": "1",
+        "monthlyTime": "07:00",
+        "budgetWarningEnabled": true,
+        "budgetWarningThreshold": 80,
+        "debtReminderEnabled": true,
+        "debtReminderDays": [
+          7,
+          3,
+          1
+        ]
+      }
+    },
+    "display": {
+      "warningThreshold": 80,
+      "dangerThreshold": 100
+    }
+  },
+  "accounts": [
+    {
+      "id": "ACC1777782729887ds5jw",
+      "nama": "BNI",
+      "tipe": "Bank",
+      "saldoAwal": 4000000,
+      "saldoSekarang": 4000000,
+      "warna": "#3b82f6",
+      "status": "Aktif"
+    }
+  ],
+  "categories": [
+    {
+      "id": "CAT001",
+      "nama": "Makanan & Minuman",
+      "tipe": "Pengeluaran Dasar",
+      "icon": "🍔",
+      "warna": "#EF4444",
+      "status": "Aktif"
+    },
+    {
+      "id": "CAT002",
+      "nama": "Sewa/Cicilan Rumah",
+      "tipe": "Pengeluaran Dasar",
+      "icon": "🏠",
+      "warna": "#DC2626",
+      "status": "Aktif"
+    },
+    {
+      "id": "CAT003",
+      "nama": "Listrik & Air",
+      "tipe": "Pengeluaran Dasar",
+      "icon": "⚡",
+      "warna": "#F97316",
+      "status": "Aktif"
+    },
+    {
+      "id": "CAT004",
+      "nama": "Pulsa & Internet",
+      "tipe": "Pengeluaran Dasar",
+      "icon": "📱",
+      "warna": "#F59E0B",
+      "status": "Aktif"
+    },
+    {
+      "id": "CAT005",
+      "nama": "Transportasi",
+      "tipe": "Pengeluaran Dasar",
+      "icon": "🚗",
+      "warna": "#EAB308",
+      "status": "Aktif"
+    },
+    {
+      "id": "CAT006",
+      "nama": "Kesehatan",
+      "tipe": "Pengeluaran Dasar",
+      "icon": "💊",
+      "warna": "#EC4899",
+      "status": "Aktif"
+    },
+    {
+      "id": "CAT007",
+      "nama": "Pakaian",
+      "tipe": "Pengeluaran Dasar",
+      "icon": "👕",
+      "warna": "#A855F7",
+      "status": "Aktif"
+    },
+    {
+      "id": "CAT008",
+      "nama": "Hiburan",
+      "tipe": "Pengeluaran Lain",
+      "icon": "🎮",
+      "warna": "#8B5CF6",
+      "status": "Aktif"
+    },
+    {
+      "id": "CAT009",
+      "nama": "Hadiah",
+      "tipe": "Pengeluaran Lain",
+      "icon": "🎁",
+      "warna": "#6366F1",
+      "status": "Aktif"
+    },
+    {
+      "id": "CAT010",
+      "nama": "Liburan",
+      "tipe": "Pengeluaran Lain",
+      "icon": "🏖️",
+      "warna": "#3B82F6",
+      "status": "Aktif"
+    },
+    {
+      "id": "CAT011",
+      "nama": "Pendidikan",
+      "tipe": "Pengeluaran Lain",
+      "icon": "📚",
+      "warna": "#0EA5E9",
+      "status": "Aktif"
+    },
+    {
+      "id": "CAT012",
+      "nama": "Belanja Online",
+      "tipe": "Pengeluaran Lain",
+      "icon": "🛍️",
+      "warna": "#06B6D4",
+      "status": "Aktif"
+    },
+    {
+      "id": "CAT013",
+      "nama": "Kafe & Nongkrong",
+      "tipe": "Pengeluaran Lain",
+      "icon": "☕",
+      "warna": "#14B8A6",
+      "status": "Aktif"
+    },
+    {
+      "id": "CAT014",
+      "nama": "Sodaqoh",
+      "tipe": "Pengeluaran Lain",
+      "icon": "💚",
+      "warna": "#10B981",
+      "status": "Aktif"
+    },
+    {
+      "id": "CAT015",
+      "nama": "Emergency",
+      "tipe": "Pengeluaran Lain",
+      "icon": "🚨",
+      "warna": "#F43F5E",
+      "status": "Aktif"
+    },
+    {
+      "id": "CAT016",
+      "nama": "Gaji",
+      "tipe": "Pemasukan",
+      "icon": "💼",
+      "warna": "#10B981",
+      "status": "Aktif"
+    },
+    {
+      "id": "CAT017",
+      "nama": "Bonus",
+      "tipe": "Pemasukan",
+      "icon": "💰",
+      "warna": "#059669",
+      "status": "Aktif"
+    },
+    {
+      "id": "CAT018",
+      "nama": "Investasi",
+      "tipe": "Pemasukan",
+      "icon": "📈",
+      "warna": "#047857",
+      "status": "Aktif"
+    },
+    {
+      "id": "CAT019",
+      "nama": "Hadiah/THR",
+      "tipe": "Pemasukan",
+      "icon": "🎁",
+      "warna": "#065F46",
+      "status": "Aktif"
+    },
+    {
+      "id": "CAT020",
+      "nama": "Lain-lain",
+      "tipe": "Pemasukan",
+      "icon": "💵",
+      "warna": "#064E3B",
+      "status": "Aktif"
+    },
+    {
+      "id": "CAT021",
+      "nama": "Bayar Utang",
+      "tipe": "Pengeluaran Lain",
+      "icon": "💳",
+      "warna": "#6B7280",
+      "status": "Aktif"
+    },
+    {
+      "id": "CAT022",
+      "nama": "Terima Piutang",
+      "tipe": "Pemasukan",
+      "icon": "🤝",
+      "warna": "#374151",
+      "status": "Aktif"
+    }
+  ],
+  "transactions": [],
+  "allocations": [],
+  "debts": [],
+  "reminders": []
+}
