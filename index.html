@@ -567,6 +567,7 @@ input[type=range] { accent-color: var(--accent2); width: 100%; height: 4px; }
         <div class="icon-btn" onclick="changePeriod(-1)" title="Bulan sebelumnya">‹</div>
         <div class="icon-btn" onclick="changePeriod(1)" title="Bulan berikutnya">›</div>
         <div class="icon-btn" onclick="syncNow()" title="Sinkronisasi">⟳</div>
+        <div class="icon-btn" onclick="showCrossDeviceModal()" title="Login di HP lain" style="font-size:13px">&#x1F4F1;</div>
       </div>
     </div>
     <div class="screen-content">
@@ -975,6 +976,7 @@ input[type=range] { accent-color: var(--accent2); width: 100%; height: 4px; }
           <button class="btn btn-ghost" style="flex:1;font-size:12px" onclick="testGithubConnection()">Test Koneksi</button>
           <button class="btn btn-ghost" style="flex:1;font-size:12px" onclick="syncNow()">Sync Sekarang</button>
         </div>
+        <button class="btn btn-primary btn-full" style="margin-top:10px;font-size:13px" onclick="showCrossDeviceModal()">&#x1F4F1; Login di Device / HP Lain</button>
       </div>
 
       <!-- WhatsApp -->
@@ -1669,6 +1671,41 @@ let trxEditId = null;
 
 // ── Init ──────────────────────────────────────────────────
 async function initApp() {
+  // ── Cek URL hash untuk auto-login lintas device ──
+  if (window.location.hash && window.location.hash.startsWith('#login=')) {
+    try {
+      var hashData = window.location.hash.slice(7); // remove '#login='
+      var decoded  = atob(hashData);
+      var parts    = decoded.split('|');
+      if (parts.length >= 2) {
+        var hashRepo  = parts[0];
+        var hashToken = parts.slice(1).join('|'); // token bisa mengandung |
+        if (hashRepo && hashToken) {
+          // Simpan credentials
+          localStorage.setItem('dompetku_v3_token',     hashToken);
+          localStorage.setItem('dompetku_v3_quickrepo', hashRepo);
+          // Bersihkan hash dari URL (keamanan)
+          history.replaceState(null, '', window.location.pathname);
+          // Load dari GitHub langsung
+          DB._setCredentials(hashRepo, hashToken);
+          var pullR = await DB.pull();
+          if (pullR.ok && DB.getMeta() && DB.getMeta().version) {
+            DB.syncAllocations();
+            document.getElementById('app').style.display = 'flex';
+            updatePeriod();
+            renderAll();
+            Utils.showToast('Login via link berhasil!', 'success');
+            WA.checkReminders();
+            return;
+          }
+        }
+      }
+    } catch(hashErr) {
+      console.warn('Hash login error:', hashErr.message);
+      history.replaceState(null, '', window.location.pathname);
+    }
+  }
+
   const localOk = DB.loadLocal();
 
   if (!localOk) {
@@ -3189,6 +3226,159 @@ async function kirimSekarang(type) {
   }
   Utils.hideLoading();
   Utils.showToast((r && r.ok) ? 'Notifikasi terkirim!' : 'Gagal: ' + ((r && r.error) || 'Error'), (r && r.ok) ? 'success' : 'error');
+}
+
+// ═══════════════════════════════════════════════════
+// CROSS-DEVICE LOGIN: QR CODE & LINK
+// ═══════════════════════════════════════════════════
+
+function getLoginUrl() {
+  var cfg   = DB.getConfig();
+  var repo  = cfg.github && cfg.github.repo  ? cfg.github.repo  : '';
+  var token = localStorage.getItem('dompetku_v3_token') || '';
+  if (!repo || !token) return null;
+  var payload  = btoa(repo + '|' + token);
+  var baseUrl  = window.location.origin + window.location.pathname;
+  return baseUrl + '#login=' + payload;
+}
+
+function showCrossDeviceModal() {
+  var cfg   = DB.getConfig();
+  var repo  = cfg.github && cfg.github.repo ? cfg.github.repo : '';
+  var token = localStorage.getItem('dompetku_v3_token') || '';
+
+  if (!repo || !token) {
+    Utils.showToast('Lengkapi GitHub repo & token di Pengaturan dulu!', 'error');
+    return;
+  }
+
+  var loginUrl = getLoginUrl();
+  var existing = document.getElementById('modal-crossdevice');
+  if (existing) existing.remove();
+
+  var modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'modal-crossdevice';
+  modal.innerHTML =
+    '<div class="modal-box" style="max-height:90vh;overflow-y:auto">'
+    + '<div class="modal-handle"></div>'
+    + '<div class="modal-title">Login di Device Lain</div>'
+
+    // Info
+    + '<div class="card-sm" style="background:rgba(251,191,36,.08);border-color:rgba(251,191,36,.2);margin-bottom:16px">'
+    + '<div class="text-xs" style="color:var(--yellow);line-height:1.7">'
+    + '<b>Keamanan:</b> Link & QR berisi token GitHub kamu. Jangan bagikan ke orang lain. '
+    + 'Gunakan hanya untuk device milikmu sendiri.'
+    + '</div></div>'
+
+    // Tab selector
+    + '<div class="tabs mb16" id="cd-tabs">'
+    + '<button class="tab active" id="cd-btn-qr" onclick="switchCDTab(this)">QR Code</button>'
+    + '<button class="tab" id="cd-btn-link" onclick="switchCDTab(this)">Copy Link</button>'
+    + '</div>'
+
+    // QR Tab
+    + '<div id="cd-tab-qr">'
+    + '<p class="text-xs text-muted mb12" style="text-align:center;line-height:1.6">Scan QR ini dari HP kamu.<br>Otomatis login tanpa perlu ketik apapun.</p>'
+    + '<div id="qr-container" style="display:flex;justify-content:center;align-items:center;padding:20px;background:#fff;border-radius:14px;margin-bottom:12px;min-height:220px">'
+    + '<div class="text-xs text-muted">Membuat QR Code...</div>'
+    + '</div>'
+    + '<p class="text-xs text-muted" style="text-align:center">QR Code berlaku selama token GitHub aktif</p>'
+    + '</div>'
+
+    // Link Tab
+    + '<div id="cd-tab-link" style="display:none">'
+    + '<p class="text-xs text-muted mb12" style="line-height:1.6">Kirim link ini ke HP kamu (via WA, email, Notes, dll). Klik link → langsung masuk.</p>'
+    + '<div class="inp" style="word-break:break-all;font-size:11px;padding:10px;color:var(--text2);min-height:60px;cursor:pointer;user-select:all" onclick="copyLoginLink()" id="link-display">'
+    + (loginUrl || '')
+    + '</div>'
+    + '<button class="btn btn-primary btn-full" style="margin-top:10px" onclick="copyLoginLink()">Salin Link</button>'
+    + '<button class="btn btn-ghost btn-full" style="margin-top:8px;font-size:12px" onclick="sendLoginLinkWA()">Kirim via WhatsApp</button>'
+    + '</div>'
+
+    + '<button class="btn btn-ghost btn-full" style="margin-top:16px" onclick="closeCDModal()">Tutup</button>'
+    + '</div>';
+
+  document.body.appendChild(modal);
+  modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
+
+  // Generate QR after modal rendered
+  setTimeout(function() { generateQRCode(loginUrl); }, 100);
+}
+
+function switchCDTab(btn) {
+  document.querySelectorAll('#cd-tabs .tab').forEach(function(t) { t.classList.remove('active'); });
+  btn.classList.add('active');
+  var isQR = btn.id === 'cd-btn-qr';
+  document.getElementById('cd-tab-qr').style.display   = isQR ? '' : 'none';
+  document.getElementById('cd-tab-link').style.display  = isQR ? 'none' : '';
+}
+
+function generateQRCode(url) {
+  var container = document.getElementById('qr-container');
+  if (!container) return;
+
+  // Load QRCode.js dari CDN
+  if (typeof QRCode !== 'undefined') {
+    renderQR(container, url);
+    return;
+  }
+
+  var script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
+  script.onload = function() { renderQR(container, url); };
+  script.onerror = function() {
+    // Fallback: gunakan Google Charts API
+    container.innerHTML = '<img src="https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=' + encodeURIComponent(url) + '&choe=UTF-8" style="border-radius:8px" width="200" height="200">';
+  };
+  document.head.appendChild(script);
+}
+
+function renderQR(container, url) {
+  container.innerHTML = '<canvas id="qr-canvas"></canvas>';
+  QRCode.toCanvas(document.getElementById('qr-canvas'), url, {
+    width: 200,
+    margin: 2,
+    color: { dark: '#000000', light: '#ffffff' }
+  }, function(err) {
+    if (err) {
+      container.innerHTML = '<div class="text-xs text-red">Gagal generate QR: ' + err.message + '</div>';
+    }
+  });
+}
+
+function copyLoginLink() {
+  var url = getLoginUrl();
+  if (!url) return;
+  navigator.clipboard.writeText(url).then(function() {
+    Utils.showToast('Link disalin!', 'success');
+  }).catch(function() {
+    // Fallback for older browsers
+    var ta = document.createElement('textarea');
+    ta.value = url;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    Utils.showToast('Link disalin!', 'success');
+  });
+}
+
+async function sendLoginLinkWA() {
+  var url = getLoginUrl();
+  if (!url) return;
+  var msg = 'Login Dompet Ku di device ini:\n' + url + '\n\nKlik link di atas untuk langsung masuk.';
+  Utils.showLoading('Mengirim...');
+  var r = await WA.sendCustom(msg);
+  Utils.hideLoading();
+  Utils.showToast(r.ok ? 'Link dikirim via WA!' : 'Gagal: ' + r.error, r.ok ? 'success' : 'error');
+}
+
+function closeCDModal() {
+  var m = document.getElementById('modal-crossdevice');
+  if (m) m.remove();
 }
 
 async function forcePushData() {
