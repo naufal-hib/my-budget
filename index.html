@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0c0c0e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Dompet Ku</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════
+     ONBOARDING / SETUP WIZARD
+═══════════════════════════════════════════════════════ -->
+<div id="onboarding" style="display:none;flex-direction:column;background:var(--bg);max-width:430px;margin:0 auto;min-height:100vh">
+
+  <!-- Step 0: Welcome -->
+  <div class="setup-step active" id="step-0">
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center">
+      <div class="setup-emoji">💰</div>
+      <div class="setup-progress">
+        <div class="setup-dot done"></div><div class="setup-dot"></div>
+        <div class="setup-dot"></div><div class="setup-dot"></div>
+      </div>
+      <div class="setup-title">Selamat datang di Dompet Ku</div>
+      <div class="setup-desc">Aplikasi keuangan pribadi yang simpel, clean, dan powerful. Data tersimpan di GitHub kamu — aman & gratis.<br><br>Mari setup dalam 4 langkah mudah.</div>
+    </div>
+    <button class="btn btn-primary btn-full" style="padding:14px" onclick="goSetupStep(1)">Mulai Setup →</button>
+    <button class="btn btn-ghost btn-full" style="margin-top:10px;font-size:12px" onclick="promptImport()">Atau import data yang sudah ada</button>
+  </div>
+
+  <!-- Step 1: Profil & GitHub -->
+  <div class="setup-step" id="step-1">
+    <div class="setup-emoji">⚙️</div>
+    <div class="setup-progress">
+      <div class="setup-dot done"></div><div class="setup-dot done"></div>
+      <div class="setup-dot"></div><div class="setup-dot"></div>
+    </div>
+    <div class="setup-title">Koneksi GitHub</div>
+    <div class="setup-desc">Data kamu akan disimpan sebagai file JSON di repository GitHub. Gratis dan kamu yang kontrol penuh.</div>
+    <div class="form-group">
+      <label class="form-label">Nama Kamu</label>
+      <input id="setup-name" class="inp" placeholder="cth: Naufal">
+    </div>
+    <div class="form-group">
+      <label class="form-label">GitHub Repo (username/repo-name)</label>
+      <input id="setup-repo" class="inp" placeholder="naufal/dompet-ku">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Personal Access Token</label>
+      <input id="setup-token" class="inp" type="password" placeholder="ghp_xxxxxxxxxxxx">
+      <div class="text-xs text-muted mt4">Settings → Developer Settings → Personal Access Tokens (Scopes: repo)</div>
+    </div>
+    <div class="card-sm" style="background:rgba(96,165,250,.08);border-color:rgba(96,165,250,.2);margin-bottom:16px">
+      <div class="text-xs" style="color:var(--blue)">ℹ️ Token hanya tersimpan di device kamu (localStorage). Tidak dikirim ke server lain.</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="flex:1" onclick="goSetupStep(0)">← Kembali</button>
+      <button class="btn btn-primary" style="flex:2" onclick="goSetupStep(2)">Lanjut →</button>
+    </div>
+  </div>
+
+  <!-- Step 2: Akun Keuangan -->
+  <div class="setup-step" id="step-2">
+    <div class="setup-emoji">🏦</div>
+    <div class="setup-progress">
+      <div class="setup-dot done"></div><div class="setup-dot done"></div>
+      <div class="setup-dot done"></div><div class="setup-dot"></div>
+    </div>
+    <div class="setup-title">Akun Keuangan</div>
+    <div class="setup-desc">Tambah akun-akun yang kamu miliki. Nama, tipe, dan warnanya bisa diubah kapan saja.</div>
+    <div id="setup-acc-list">
+      <div class="setup-acc-row card-sm" style="display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap">
+        <input class="inp acc-nama" placeholder="Nama akun" style="flex:2;min-width:100px">
+        <select class="inp acc-tipe" style="flex:1;min-width:80px">
+          <option>Bank</option><option>Cash</option><option>E-wallet</option><option>Investasi</option>
+        </select>
+        <input class="inp acc-saldo" type="number" placeholder="Saldo awal" style="flex:2;min-width:100px">
+        <input class="inp acc-warna" type="color" value="#3B82F6" style="width:36px;height:36px;padding:2px;flex-shrink:0">
+      </div>
+    </div>
+    <button class="btn btn-ghost btn-full" style="margin-bottom:16px;font-size:12px" onclick="addSetupAccRow()">+ Tambah Akun Lain</button>
+    <div class="text-xs text-muted" style="margin-bottom:16px">Kategori transaksi akan diisi otomatis dengan preset standar (bisa diubah nanti).</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="flex:1" onclick="goSetupStep(1)">← Kembali</button>
+      <button class="btn btn-primary" style="flex:2" onclick="goSetupStep(3)">Lanjut →</button>
+    </div>
+  </div>
+
+  <!-- Step 3: WhatsApp -->
+  <div class="setup-step" id="step-3">
+    <div class="setup-emoji">💬</div>
+    <div class="setup-progress">
+      <div class="setup-dot done"></div><div class="setup-dot done"></div>
+      <div class="setup-dot done"></div><div class="setup-dot done"></div>
+    </div>
+    <div class="setup-title">WhatsApp Notifikasi</div>
+    <div class="setup-desc">Terima ringkasan harian, reminder utang, dan alert budget via WhatsApp. Lewati jika belum punya akun Fonnte.</div>
+    <div class="form-group">
+      <label class="form-label">Fonnte API Key</label>
+      <input id="setup-wa-key" class="inp" placeholder="API Key dari fonnte.com">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nomor WhatsApp (format: 628xxx)</label>
+      <input id="setup-wa-num" class="inp" placeholder="628xxxxxxxxxx" type="tel">
+    </div>
+    <div class="card-sm" style="background:rgba(52,211,153,.08);border-color:rgba(52,211,153,.2);margin-bottom:16px">
+      <div class="text-xs" style="color:var(--green)">💡 Template pesan, jadwal kirim, dan on/off per jenis notifikasi bisa diatur detail di halaman WhatsApp nanti.</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="flex:1" onclick="goSetupStep(2)">← Kembali</button>
+      <button class="btn btn-primary" style="flex:2" onclick="finishSetup()">Selesai & Mulai 🚀</button>
+    </div>
+    <button class="btn btn-ghost btn-full" style="margin-top:10px;font-size:12px" onclick="finishSetup()">Lewati WhatsApp untuk sekarang</button>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     MAIN APP
+═══════════════════════════════════════════════════════ -->
+<div id="app" style="display:none">
+
+  <!-- ── DASHBOARD ───────────────────────────────────── -->
+  <div class="screen active" id="screen-dash">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title">💰 Dompet Ku</div>
+        <div class="topbar-sub" id="dash-period">Mei 2026</div>
+      </div>
+      <div class="topbar-actions">
+        <div class="icon-btn" onclick="changePeriod(-1)" title="Bulan sebelumnya">‹</div>
+        <div class="icon-btn" onclick="changePeriod(1)" title="Bulan berikutnya">›</div>
+        <div class="icon-btn" onclick="syncNow()" title="Sinkronisasi">⟳</div>
+      </div>
+    </div>
+    <div class="screen-content">
+      <!-- Hero Card -->
+      <div class="hero-card">
+        <div class="label" style="color:rgba(167,139,250,.7)">Total Aset</div>
+        <div class="big-num" id="dash-total-aset" style="color:#fff;font-size:30px">Rp 0</div>
+        <div class="row" style="margin-top:12px;gap:20px">
+          <div><div class="text-xs" style="color:rgba(167,139,250,.7)">Masuk</div><div class="fw500 text-green" id="dash-pemasukan">+Rp 0</div></div>
+          <div><div class="text-xs" style="color:rgba(167,139,250,.7)">Keluar</div><div class="fw500 text-red" id="dash-pengeluaran">-Rp 0</div></div>
+          <div><div class="text-xs" style="color:rgba(167,139,250,.7)">Utang</div><div class="fw500 text-yellow" id="dash-utang">Rp 0</div></div>
+        </div>
+      </div>
+
+      <!-- Accounts -->
+      <div>
+        <div class="row-between mb8">
+          <span class="section-title">Akun Saya</span>
+          <span class="text-xs text-accent" style="cursor:pointer" onclick="goTo('accounts')">Kelola →</span>
+        </div>
+        <div class="scroll-x" id="dash-accounts"></div>
+      </div>
+
+      <!-- Jatah Mini -->
+      <div class="card">
+        <div class="row-between mb8">
+          <span class="section-title">Jatah Bulan Ini</span>
+          <span class="text-xs text-accent" style="cursor:pointer" onclick="goTo('alloc')">Lihat Semua →</span>
+        </div>
+        <div id="dash-alloc-mini"></div>
+      </div>
+
+      <!-- Recent Transactions -->
+      <div class="card">
+        <div class="row-between mb8">
+          <span class="section-title">Transaksi Terbaru</span>
+          <span class="text-xs text-accent" style="cursor:pointer" onclick="goTo('trx')">Semua →</span>
+        </div>
+        <div id="dash-recent-trx"></div>
+      </div>
+
+      <!-- Active Debts -->
+      <div id="dash-debts">
+        <div class="row-between mb8">
+          <span class="section-title">Utang Aktif</span>
+          <span class="text-xs text-accent" style="cursor:pointer" onclick="goTo('debts')">Kelola →</span>
+        </div>
+        <div id="dash-debts-list" class="card" style="padding:12px 14px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TRANSACTIONS ──────────────────────────────── -->
+  <div class="screen" id="screen-trx">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title">Transaksi</div>
+        <div class="topbar-sub" id="trx-period-label"></div>
+      </div>
+      <div class="topbar-actions">
+        <div class="icon-btn" onclick="changePeriod(-1)">‹</div>
+        <div class="icon-btn" onclick="changePeriod(1)">›</div>
+      </div>
+    </div>
+    <div class="screen-content">
+      <div class="grid2">
+        <div class="card-sm"><div class="label">Pemasukan</div><div class="fw600 text-green" id="trx-pemasukan">Rp 0</div></div>
+        <div class="card-sm"><div class="label">Pengeluaran</div><div class="fw600 text-red" id="trx-pengeluaran">Rp 0</div></div>
+      </div>
+      <div class="card-sm">
+        <div class="label mb8">Filter Tipe</div>
+        <div class="scroll-x" id="filter-tipe" style="padding-bottom:6px"></div>
+      </div>
+      <div class="card-sm">
+        <div class="label mb8">Filter Kategori</div>
+        <div class="scroll-x" id="filter-kategori" style="padding-bottom:6px"></div>
+      </div>
+      <div class="card-sm">
+        <div class="row-between">
+          <span class="text-xs text-muted" id="trx-count">0 transaksi</span>
+          <span class="text-xs text-accent" style="cursor:pointer" onclick="exportJSON()">Export JSON</span>
+        </div>
+      </div>
+      <div class="card" style="padding:12px 14px">
+        <div id="trx-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ALLOCATIONS ───────────────────────────────── -->
+  <div class="screen" id="screen-alloc">
+    <div class="topbar">
+      <div class="topbar-title">Jatah Bulanan</div>
+      <div class="chip chip-purple" id="alloc-period-chip">Mei 2026</div>
+    </div>
+    <div class="screen-content">
+      <div class="card" style="background:rgba(167,139,250,.06);border-color:rgba(167,139,250,.15)">
+        <div class="grid2" style="margin-bottom:10px">
+          <div><div class="label">Total Jatah</div><div class="fw600" id="alloc-total">Rp 0</div></div>
+          <div><div class="label">Terpakai</div><div class="fw600 text-yellow" id="alloc-terpakai">Rp 0</div></div>
+        </div>
+        <div><div class="label">Sisa</div><div class="fw600 text-green" id="alloc-sisa">Rp 0</div></div>
+      </div>
+      <div id="alloc-list"></div>
+    </div>
+  </div>
+
+  <!-- ── DEBTS ────────────────────────────────────── -->
+  <div class="screen" id="screen-debts">
+    <div class="topbar"><div class="topbar-title">Utang & Piutang</div></div>
+    <div class="screen-content">
+      <div class="grid2">
+        <div class="card-sm"><div class="label">Total Utang</div><div class="fw600 text-red" id="debt-total-utang">Rp 0</div></div>
+        <div class="card-sm"><div class="label">Total Piutang</div><div class="fw600 text-green" id="debt-total-piutang">Rp 0</div></div>
+      </div>
+      <div class="section-title">Utang Aktif</div>
+      <div id="debt-utang-list"></div>
+      <div class="section-title">Piutang Aktif</div>
+      <div id="debt-piutang-list"></div>
+      <div class="card-sm text-muted text-xs" style="text-align:center;cursor:pointer" onclick="showLunasDebts()">
+        Lihat <span id="debt-lunas-count">0</span> yang sudah lunas
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ACCOUNTS ──────────────────────────────────── -->
+  <div class="screen" id="screen-accounts">
+    <div class="topbar">
+      <div class="topbar-title">Kelola Akun</div>
+      <button class="btn btn-primary btn-sm" onclick="showAccModal()">+ Tambah</button>
+    </div>
+    <div class="screen-content">
+      <div class="card-sm" style="background:rgba(96,165,250,.06);border-color:rgba(96,165,250,.2)">
+        <div class="text-xs" style="color:var(--blue)">Semua nama, tipe, saldo, dan warna akun bisa diubah bebas. Tidak ada yang terkunci.</div>
+      </div>
+      <div id="acc-list"></div>
+    </div>
+  </div>
+
+  <!-- ── CATEGORIES ────────────────────────────────── -->
+  <div class="screen" id="screen-categories">
+    <div class="topbar">
+      <div class="topbar-title">Kelola Kategori</div>
+      <button class="btn btn-primary btn-sm" onclick="showCatModal()">+ Tambah</button>
+    </div>
+    <div class="screen-content">
+      <div id="cat-list"></div>
+    </div>
+  </div>
+
+  <!-- ── WHATSAPP ──────────────────────────────────── -->
+  <div class="screen" id="screen-wa">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title">WhatsApp</div>
+        <div class="topbar-sub" id="wa-status">● Nonaktif</div>
+      </div>
+      <span class="chip chip-green" style="font-size:11px">Fonnte</span>
+    </div>
+    <div class="screen-content">
+      <!-- Jadwal Notifikasi -->
+      <div class="card">
+        <div class="section-title mb12">Jadwal & Aktifasi</div>
+        <div class="toggle-wrap">
+          <div>
+            <div class="text-sm fw500">Ringkasan Harian</div>
+            <div class="row" style="gap:6px;margin-top:4px;align-items:center">
+              <span class="text-xs text-muted">Jam</span>
+              <input id="wa-daily-time" class="inp" type="time" value="08:00" style="width:110px;padding:4px 8px">
+            </div>
+          </div>
+          <button id="wa-tog-daily" class="toggle off" onclick="this.classList.toggle('on');this.classList.toggle('off');this.innerHTML='<div class=toggle-thumb></div>'"><div class="toggle-thumb"></div></button>
+        </div>
+        <div class="toggle-wrap">
+          <div>
+            <div class="text-sm fw500">Ringkasan Mingguan</div>
+            <div class="row" style="gap:6px;margin-top:4px;flex-wrap:wrap">
+              <select id="wa-weekly-day" class="inp" style="width:120px;padding:4px 8px">
+                <option value="1">Senin</option><option value="2">Selasa</option><option value="3">Rabu</option>
+                <option value="4">Kamis</option><option value="5">Jumat</option><option value="0">Minggu</option>
+              </select>
+              <input id="wa-weekly-time" class="inp" type="time" value="07:00" style="width:100px;padding:4px 8px">
+            </div>
+          </div>
+          <button id="wa-tog-weekly" class="toggle off" onclick="this.classList.toggle('on');this.classList.toggle('off');this.innerHTML='<div class=toggle-thumb></div>'"><div class="toggle-thumb"></div></button>
+        </div>
+        <div class="toggle-wrap">
+          <div>
+            <div class="text-sm fw500">Laporan Bulanan</div>
+            <div class="text-xs text-muted">Tanggal 1 tiap bulan jam 07:00</div>
+          </div>
+          <button id="wa-tog-monthly" class="toggle off" onclick="this.classList.toggle('on');this.classList.toggle('off');this.innerHTML='<div class=toggle-thumb></div>'"><div class="toggle-thumb"></div></button>
+        </div>
+        <div class="toggle-wrap">
+          <div>
+            <div class="text-sm fw500">Alert Jatah Hampir Habis</div>
+            <div class="row" style="gap:6px;margin-top:4px;align-items:center">
+              <span class="text-xs text-muted">Warn di</span>
+              <input id="wa-budget-threshold" class="inp" type="number" min="1" max="100" value="80" style="width:70px;padding:4px 8px">
+              <span class="text-xs text-muted">%</span>
+            </div>
+          </div>
+          <button id="wa-tog-budget" class="toggle off" onclick="this.classList.toggle('on');this.classList.toggle('off');this.innerHTML='<div class=toggle-thumb></div>'"><div class="toggle-thumb"></div></button>
+        </div>
+        <div class="toggle-wrap" style="border-bottom:none">
+          <div>
+            <div class="text-sm fw500">Reminder Utang</div>
+            <div class="text-xs text-muted">H-7, H-3, H-1 sebelum jatuh tempo</div>
+          </div>
+          <button id="wa-tog-debt" class="toggle off" onclick="this.classList.toggle('on');this.classList.toggle('off');this.innerHTML='<div class=toggle-thumb></div>'"><div class="toggle-thumb"></div></button>
+        </div>
+        <button class="btn btn-primary btn-full" style="margin-top:12px" onclick="saveWASchedule()">Simpan Jadwal</button>
+      </div>
+
+      <!-- Template Editor -->
+      <div class="card">
+        <div class="section-title mb12">Edit Template Pesan</div>
+        <div class="form-group">
+          <label class="form-label">Jenis Notifikasi</label>
+          <select id="wa-tpl-select" class="inp" onchange="renderWATemplatePreview()">
+            <option value="daily">Ringkasan Harian</option>
+            <option value="weekly">Ringkasan Mingguan</option>
+            <option value="monthly">Laporan Bulanan</option>
+            <option value="budgetWarning">Jatah Hampir Habis</option>
+            <option value="debtReminder">Reminder Utang</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Template (gunakan {variabel} untuk data dinamis)</label>
+          <textarea id="wa-tpl-text" class="inp" rows="7" oninput="renderWATemplatePreview()"></textarea>
+          <div class="text-xs text-muted mt4">Variabel: {tanggal} {pemasukan} {pengeluaran} {saldo} {top_kategori} {pesan_motivasi} {periode} {saving_rate} {detail_jatah} {nama_jatah} {persen} {alokasi} {terpakai} {sisa} {nama_pihak} {hari} {jatuh_tempo}</div>
+        </div>
+        <div class="label mt8">Preview Pesan</div>
+        <div class="wa-preview" id="wa-preview"></div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn btn-ghost" style="flex:1" onclick="saveWATemplate()">Simpan Template</button>
+          <button class="btn btn-success" style="flex:1" onclick="sendWATest()">Kirim Test ▶</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── REPORTS ───────────────────────────────────── -->
+  <div class="screen" id="screen-reports">
+    <div class="topbar">
+      <div class="topbar-title">Laporan</div>
+      <div class="chip chip-purple" id="rep-period"></div>
+    </div>
+    <div class="screen-content">
+      <div class="grid2">
+        <div class="card-sm"><div class="label">Pemasukan</div><div class="fw600 text-green" id="rep-pemasukan">Rp 0</div></div>
+        <div class="card-sm"><div class="label">Pengeluaran</div><div class="fw600 text-red" id="rep-pengeluaran">Rp 0</div></div>
+      </div>
+      <div class="card-sm">
+        <div class="label">Saving Rate</div>
+        <div class="fw600" id="rep-saving" style="font-size:22px">0%</div>
+      </div>
+      <div class="card">
+        <div class="section-title mb12">Top Pengeluaran per Kategori</div>
+        <div id="rep-top-kat"></div>
+      </div>
+      <div class="card">
+        <div class="section-title mb12">Kirim Laporan via WhatsApp</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-ghost btn-full" onclick="WA.sendMonthly().then(r=>Utils.showToast(r.ok?'Terkirim!':'Gagal: '+r.error,r.ok?'success':'error'))">Kirim Laporan Bulanan 📊</button>
+          <button class="btn btn-ghost btn-full" onclick="WA.sendWeekly().then(r=>Utils.showToast(r.ok?'Terkirim!':'Gagal: '+r.error,r.ok?'success':'error'))">Kirim Ringkasan Mingguan 📈</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-title mb12">Export Data</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" style="flex:1" onclick="exportJSON()">Export JSON</button>
+          <button class="btn btn-ghost" style="flex:1" onclick="exportCSV()">Export CSV</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SETTINGS ─────────────────────────────────── -->
+  <div class="screen" id="screen-settings">
+    <div class="topbar"><div class="topbar-title">Pengaturan</div></div>
+    <div class="screen-content">
+      <!-- App -->
+      <div class="card">
+        <div class="section-title mb12">Aplikasi</div>
+        <div class="form-group">
+          <label class="form-label">Nama Aplikasi</label>
+          <input id="set-app-name" class="inp" value="Dompet Ku">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nama Pemilik</label>
+          <input id="set-owner" class="inp" placeholder="Nama kamu">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Periode Aktif</label>
+          <input id="set-period" class="inp" type="month">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Threshold Warning Jatah (%)</label>
+          <input id="set-warn-threshold" class="inp" type="number" min="1" max="100">
+        </div>
+      </div>
+
+      <!-- GitHub -->
+      <div class="card">
+        <div class="section-title mb12">GitHub Database</div>
+        <div class="form-group">
+          <label class="form-label">Repository (username/repo)</label>
+          <input id="set-repo" class="inp" placeholder="username/dompet-ku">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Personal Access Token</label>
+          <input id="set-token" class="inp" type="password" placeholder="ghp_xxxx">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Branch</label>
+          <input id="set-branch" class="inp" value="main">
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" style="flex:1;font-size:12px" onclick="testGithubConnection()">Test Koneksi</button>
+          <button class="btn btn-ghost" style="flex:1;font-size:12px" onclick="syncNow()">Sync Sekarang</button>
+        </div>
+      </div>
+
+      <!-- WhatsApp -->
+      <div class="card">
+        <div class="section-title mb12">WhatsApp (Fonnte)</div>
+        <div class="toggle-wrap" style="margin-bottom:12px">
+          <div class="text-sm fw500">Aktifkan WhatsApp</div>
+          <button id="set-wa-enabled" class="toggle off" onclick="this.classList.toggle('on');this.classList.toggle('off');this.innerHTML='<div class=toggle-thumb></div>'"><div class="toggle-thumb"></div></button>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fonnte API Key</label>
+          <input id="set-wa-key" class="inp" type="password" placeholder="API Key">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nomor WhatsApp</label>
+          <input id="set-wa-num" class="inp" placeholder="628xxxxxxxxxx" type="tel">
+        </div>
+      </div>
+
+      <!-- Manage -->
+      <div class="card">
+        <div class="section-title mb12">Kelola Data</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-ghost btn-full" style="font-size:12px" onclick="goTo('accounts')">🏦 Kelola Akun</button>
+          <button class="btn btn-ghost btn-full" style="font-size:12px" onclick="goTo('categories')">🏷️ Kelola Kategori</button>
+          <button class="btn btn-ghost btn-full" style="font-size:12px" onclick="exportJSON()">📥 Export JSON</button>
+          <button class="btn btn-ghost btn-full" style="font-size:12px" onclick="importJSON()">📤 Import JSON</button>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-full" style="padding:13px" onclick="saveSettings()">Simpan Semua Pengaturan</button>
+
+      <!-- Danger Zone -->
+      <div class="card" style="border-color:rgba(248,113,113,.2)">
+        <div class="section-title mb12" style="color:var(--red)">⚠️ Danger Zone</div>
+        <div class="text-xs text-muted" style="margin-bottom:12px">Aksi di bawah ini tidak bisa dibatalkan. Pastikan sudah backup data.</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-danger btn-full" style="font-size:12px" onclick="showResetOptions()">🗑️ Reset & Setup Ulang</button>
+        </div>
+      </div>
+
+      <div class="text-xs text-muted" style="text-align:center;padding:8px">Dompet Ku v3.0 · Data tersimpan di GitHub kamu</div>
+    </div>
+  </div>
+
+  <!-- ── BOTTOM NAV ────────────────────────────────── -->
+  <nav class="bottomnav">
+    <button class="nav-item active" id="nav-dash" onclick="goTo('dash')">
+      <div class="nav-icon">⊞</div>
+      <div class="nav-label">Dashboard</div>
+    </button>
+    <button class="nav-item" id="nav-trx" onclick="goTo('trx')">
+      <div class="nav-icon">⇄</div>
+      <div class="nav-label">Transaksi</div>
+    </button>
+    <button class="nav-item" id="nav-alloc" onclick="goTo('alloc')">
+      <div class="nav-icon">◎</div>
+      <div class="nav-label">Jatah</div>
+    </button>
+    <button class="nav-item" id="nav-debts" onclick="goTo('debts')">
+      <div class="nav-icon">💳</div>
+      <div class="nav-label">Utang</div>
+    </button>
+    <button class="nav-item" id="nav-settings" onclick="goTo('settings')">
+      <div class="nav-icon">⚙</div>
+      <div class="nav-label">Setelan</div>
+    </button>
+  </nav>
+
+  <!-- FAB -->
+  <button class="fab" id="main-fab" onclick="fabAction()">+</button>
+
+</div><!-- end #app -->
+
+<!-- Scripts -->
+<script src="js/defaults.js"></script>
+<script src="js/db.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/whatsapp.js"></script>
+<script src="js/app.js"></script>
+<script src="js/pages.js"></script>
+<script>
+// Extra helpers referenced in HTML
+function exportCSV() {
+  const trx = DB.getTransactions();
+  const header = ['ID','Tanggal','Tipe','Kategori','Akun','Nominal','Keterangan','Akun Tujuan'];
+  const rows = trx.map(t => [t.id,t.tanggal,t.tipe,t.kategori,t.akun,t.nominal,t.keterangan||'',t.akunTujuan||'']);
+  const csv = [header, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `dompetku-${Utils.today()}.csv`; a.click();
+  URL.revokeObjectURL(url);
+  Utils.showToast('Export CSV berhasil!', 'success');
+}
+
+function promptImport() {
+  importJSON();
+}
+
+function showLunasDebts() {
+  const lunas = DB.getDebts().filter(d => d.status === 'Lunas');
+  if (lunas.length === 0) { Utils.showToast('Tidak ada yang sudah lunas', 'info'); return; }
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'modal-lunas';
+  modal.innerHTML = `<div class="modal-box"><div class="modal-handle"></div>
+    <div class="modal-title mb12">Lunas (${lunas.length})</div>
+    ${lunas.map(d=>`<div class="card-sm row-between" style="margin-bottom:8px">
+      <div><div class="text-sm fw500">${Utils.sanitize(d.namaPihak)}</div><div class="text-xs text-muted">${d.tipe} · ${Utils.formatRupiah(d.totalNominal)}</div></div>
+      <span class="chip chip-green">Lunas</span>
+    </div>`).join('')}
+    <button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="this.closest('.modal-overlay').remove()">Tutup</button>
+  </div>`;
+  document.body.appendChild(modal);
+  modal.onclick = e => { if(e.target===modal) modal.remove(); };
+}
+
+// Inject CSS keyframes
+const style = document.createElement('style');
+style.textContent = '@keyframes spin{to{transform:rotate(360deg)}}@keyframes fadeInDown{from{opacity:0;transform:translateX(-50%) translateY(-8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}';
+document.head.appendChild(style);
+
+// Boot
+window.addEventListener('DOMContentLoaded', initApp);
+</script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+name: WhatsApp Notifikasi Otomatis
+
+on:
+  schedule:
+    # Harian jam 08:00 WIB (01:00 UTC)
+    - cron: '0 1 * * *'
+    # Mingguan Senin jam 07:00 WIB (00:00 UTC)
+    - cron: '0 0 * * 1'
+    # Bulanan tanggal 1 jam 07:00 WIB
+    - cron: '0 0 1 * *'
+  workflow_dispatch:
+    inputs:
+      type:
+        description: 'Jenis notifikasi (daily/weekly/monthly/debtcheck)'
+        required: true
+        default: 'daily'
+
+jobs:
+  send-notification:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Send WhatsApp Notification
+        env:
+          FONNTE_API_KEY: ${{ secrets.FONNTE_API_KEY }}
+          WA_NUMBER: ${{ secrets.WA_NUMBER }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: node .github/scripts/send-wa.js "${{ github.event.inputs.type || 'auto' }}" "${{ github.event_name }}"
