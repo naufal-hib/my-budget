@@ -966,6 +966,11 @@ input[type=range] { accent-color: var(--accent2); width: 100%; height: 4px; }
           <label class="form-label">Branch</label>
           <input id="set-branch" class="inp" value="main">
         </div>
+        <div class="form-group">
+          <label class="form-label">Path File Database di Repo</label>
+          <input id="set-dbpath" class="inp" placeholder="db.json" value="db.json">
+          <div class="text-xs text-muted mt4">Default: <code>db.json</code> (di root repo). Pastikan file ini sudah ada di repo kamu (isi: <code>{}</code>).</div>
+        </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn btn-ghost" style="flex:1;font-size:12px;min-width:120px" onclick="testGithubConnection()">🔍 Test Koneksi</button>
           <button class="btn btn-ghost" style="flex:1;font-size:12px;min-width:120px" onclick="syncNow()">⟳ Sync Sekarang</button>
@@ -1013,7 +1018,8 @@ input[type=range] { accent-color: var(--accent2); width: 100%; height: 4px; }
         <div class="section-title mb12" style="color:var(--red)">⚠️ Danger Zone</div>
         <div class="text-xs text-muted" style="margin-bottom:12px">Aksi di bawah ini tidak bisa dibatalkan. Pastikan sudah backup data.</div>
         <div style="display:flex;flex-direction:column;gap:8px">
-          <button class="btn btn-danger btn-full" style="font-size:12px" onclick="showResetOptions()">🗑️ Reset & Setup Ulang</button>
+          <button class="btn btn-success btn-full" style="font-size:12px" onclick="forcePushData()">☁️ Force Push Data ke GitHub</button>
+          <button class="btn btn-danger btn-full" style="font-size:12px;margin-top:8px" onclick="showResetOptions()">🗑️ Reset & Setup Ulang</button>
         </div>
       </div>
 
@@ -1095,7 +1101,7 @@ const DB = (() => {
 
   // ── Helpers ──────────────────────────────────────────────
   const cfg = () => _data?.config?.github || {};
-  const apiBase = () => `https://api.github.com/repos/${cfg().repo}/contents/${cfg().dbPath || 'data/db.json'}`;
+  const apiBase = () => `https://api.github.com/repos/${cfg().repo}/contents/${cfg().dbPath || 'db.json'}`;
   const headers = () => ({
     'Authorization': `token ${cfg().token}`,
     'Content-Type': 'application/json',
@@ -1108,7 +1114,7 @@ const DB = (() => {
     const token = cfg().token;
     if (!repo || !token) return { ok: false, error: 'Repo/token belum diisi' };
     try {
-      const url = `https://api.github.com/repos/${repo}/contents/${cfg().dbPath || 'data/db.json'}?ref=${cfg().branch || 'main'}&t=${Date.now()}`;
+      const url = `https://api.github.com/repos/${repo}/contents/${cfg().dbPath || 'db.json'}?ref=${cfg().branch || 'main'}&t=${Date.now()}`;
       const r = await fetch(url, {
         method: 'GET',
         headers: {
@@ -1155,84 +1161,49 @@ const DB = (() => {
     const repo = cfg().repo;
     const token = cfg().token;
     if (!repo || !token) return { ok: false, error: 'Repo/token belum diisi di pengaturan' };
+    
+    const filePath = cfg().dbPath || 'db.json';
+    const branch   = cfg().branch || 'main';
+    const apiUrl   = `https://api.github.com/repos/${repo}/contents/${filePath}`;
+    const hdrs     = { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' };
+
     try {
-      // Kalau belum punya SHA, coba fetch dulu untuk dapat SHA
-      if (!_sha) {
-        const checkUrl = `https://api.github.com/repos/${repo}/contents/${cfg().dbPath || 'data/db.json'}`;
-        const checkR = await fetch(checkUrl, {
-          headers: {
-            'Authorization': `token ${token}`,
-            'Accept': 'application/vnd.github.v3+json'
-          }
-        });
-        if (checkR.ok) {
-          const checkJ = await checkR.json();
-          _sha = checkJ.sha;
-        }
-        // Kalau 404 berarti file belum ada, push sebagai file baru (tidak perlu SHA)
+      // Selalu fetch SHA terbaru sebelum push (hindari konflik)
+      const checkR = await fetch(apiUrl + `?ref=${branch}&t=${Date.now()}`, { headers: hdrs });
+      if (checkR.ok) {
+        const checkJ = await checkR.json();
+        _sha = checkJ.sha;
+        console.log('[DB] Fetched latest SHA:', _sha.slice(0,8));
+      } else if (checkR.status === 404) {
+        _sha = null; // File belum ada, akan dibuat baru
+        console.log('[DB] File belum ada di repo, akan dibuat baru');
+      } else {
+        const e = await checkR.json().catch(() => ({}));
+        throw new Error(`Cek file gagal: ${checkR.status} ${e.message || ''}`);
       }
 
-      // Encode content
+      // Encode JSON → base64 (safe untuk emoji & unicode)
       const jsonStr = JSON.stringify(_data, null, 2);
-      // Gunakan TextEncoder untuk handle karakter unicode (emoji, dll)
-      const bytes = new TextEncoder().encode(jsonStr);
-      let binary = '';
-      bytes.forEach(b => binary += String.fromCharCode(b));
-      const content = btoa(binary);
+      const b64 = btoa(unescape(encodeURIComponent(jsonStr)));
 
-      const body = {
-        message: `Dompet Ku update ${new Date().toISOString()}`,
-        content: content,
-        branch: cfg().branch || 'main'
-      };
+      const body = { message: 'Dompet Ku update ' + new Date().toISOString(), content: b64, branch };
       if (_sha) body.sha = _sha;
 
-      const url = `https://api.github.com/repos/${repo}/contents/${cfg().dbPath || 'data/db.json'}`;
-      const r = await fetch(url, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `token ${token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/vnd.github.v3+json'
-        },
-        body: JSON.stringify(body)
-      });
+      console.log('[DB] Pushing to', apiUrl, '| SHA:', _sha ? _sha.slice(0,8) : 'none (new file)');
+      const putR = await fetch(apiUrl, { method: 'PUT', headers: hdrs, body: JSON.stringify(body) });
 
-      if (!r.ok) {
-        const errBody = await r.json().catch(() => ({}));
-        const errMsg = errBody.message || `HTTP ${r.status}`;
-        // Jika konflik SHA (422), coba fetch SHA terbaru lalu retry sekali
-        if (r.status === 422 || r.status === 409) {
-          console.warn('SHA konflik, retry dengan SHA terbaru...');
-          const retryCheck = await fetch(url, {
-            headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
-          });
-          if (retryCheck.ok) {
-            const retryJ = await retryCheck.json();
-            _sha = retryJ.sha;
-            body.sha = _sha;
-            const retryR = await fetch(url, {
-              method: 'PUT',
-              headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' },
-              body: JSON.stringify(body)
-            });
-            if (retryR.ok) {
-              const retryJ2 = await retryR.json();
-              _sha = retryJ2.content.sha;
-              _saveLocal();
-              return { ok: true };
-            }
-          }
-        }
-        throw new Error(errMsg);
+      if (!putR.ok) {
+        const errJ = await putR.json().catch(() => ({}));
+        throw new Error(`Push gagal: ${putR.status} - ${errJ.message || putR.statusText}`);
       }
 
-      const j = await r.json();
-      _sha = j.content.sha;
+      const putJ = await putR.json();
+      _sha = putJ.content.sha;
+      console.log('[DB] Push sukses! New SHA:', _sha.slice(0,8));
       _saveLocal();
       return { ok: true };
     } catch (e) {
-      console.error('GitHub push failed:', e.message);
+      console.error('[DB] Push error:', e.message);
       return { ok: false, error: e.message };
     }
   }
@@ -1275,7 +1246,7 @@ const DB = (() => {
           repo: setupData.repo || '',
           token: setupData.token || '',
           branch: 'main',
-          dbPath: 'data/db.json'
+          dbPath: 'db.json'
         },
         whatsapp: {
           enabled: false,
@@ -1571,27 +1542,29 @@ const WA = (() => {
   }
 
   async function sendDaily() {
-    const period = DB.getMeta().activePeriod;
     const todayStr = Utils.today();
     const trxToday = DB.getTransactions().filter(t => t.tanggal === todayStr);
     const pemasukan = trxToday.filter(t => t.tipe === 'Pemasukan').reduce((s, t) => s + t.nominal, 0);
     const pengeluaran = trxToday.filter(t => t.tipe === 'Pengeluaran').reduce((s, t) => s + t.nominal, 0);
-    const saldo = pemasukan - pengeluaran;
+    const selisihHari = pemasukan - pengeluaran;
+
+    // Total saldo semua akun aktif (saldo real, bukan cuma hari ini)
+    const totalSaldo = DB.getAccounts().filter(a => a.status === 'Aktif').reduce((s, a) => s + (a.saldoSekarang || 0), 0);
 
     const katMap = {};
     trxToday.filter(t => t.tipe === 'Pengeluaran').forEach(t => {
       katMap[t.kategori] = (katMap[t.kategori] || 0) + t.nominal;
     });
     const top = Object.entries(katMap).sort((a, b) => b[1] - a[1]).slice(0, 3)
-      .map((e, i) => `${i + 1}. ${e[0]}: ${Utils.formatRupiah(e[1])}`).join('\n') || 'Tidak ada';
+      .map((e, i) => (i + 1) + '. ' + e[0] + ': ' + Utils.formatRupiah(e[1])).join('\n') || 'Tidak ada pengeluaran hari ini';
 
     const msg = buildMessage('daily', {
       tanggal: Utils.formatDate(todayStr, { long: true }),
       pemasukan: Utils.formatRupiah(pemasukan),
       pengeluaran: Utils.formatRupiah(pengeluaran),
-      saldo: Utils.formatRupiah(saldo),
+      saldo: Utils.formatRupiah(selisihHari) + ' (Total Aset: ' + Utils.formatRupiah(totalSaldo) + ')',
       top_kategori: top,
-      pesan_motivasi: getMotivasi(saldo)
+      pesan_motivasi: getMotivasi(totalSaldo)
     });
     return await send(msg);
   }
@@ -3161,6 +3134,8 @@ function renderSettings() {
   document.getElementById('set-repo').value = cfg.github?.repo || '';
   document.getElementById('set-token').value = cfg.github?.token || '';
   document.getElementById('set-branch').value = cfg.github?.branch || 'main';
+  const dbPathEl = document.getElementById('set-dbpath');
+  if (dbPathEl) dbPathEl.value = cfg.github?.dbPath || 'db.json';
   document.getElementById('set-wa-key').value = cfg.whatsapp?.apiKey || '';
   document.getElementById('set-wa-num').value = cfg.whatsapp?.number || '';
   document.getElementById('set-wa-enabled').className = `toggle ${cfg.whatsapp?.enabled ? 'on' : 'off'}`;
@@ -3174,6 +3149,7 @@ async function saveSettings() {
   DB.saveConfig('github.repo', document.getElementById('set-repo')?.value?.trim() || '');
   DB.saveConfig('github.token', document.getElementById('set-token')?.value?.trim() || '');
   DB.saveConfig('github.branch', document.getElementById('set-branch')?.value?.trim() || 'main');
+  DB.saveConfig('github.dbPath', document.getElementById('set-dbpath')?.value?.trim() || 'db.json');
   DB.saveConfig('whatsapp.apiKey', document.getElementById('set-wa-key')?.value?.trim() || '');
   DB.saveConfig('whatsapp.number', document.getElementById('set-wa-num')?.value?.trim() || '');
   DB.saveConfig('whatsapp.enabled', document.getElementById('set-wa-enabled')?.classList.contains('on'));
@@ -3288,6 +3264,28 @@ function renderReports() {
 </script>
 <script>
 // Extra helpers referenced in HTML
+async function forcePushData() {
+  const cfg = DB.getConfig().github;
+  if (!cfg?.repo || !cfg?.token) {
+    Utils.showToast('Isi dulu repo & token di pengaturan!', 'error');
+    return;
+  }
+  Utils.confirm(
+    'Force push akan menimpa file db.json di GitHub dengan data lokal yang ada sekarang. Lanjutkan?',
+    async () => {
+      Utils.showLoading('Force push ke GitHub...');
+      // Reset SHA agar fetch ulang
+      const r = await DB.push();
+      Utils.hideLoading();
+      if (r.ok) {
+        Utils.showToast('✅ Data berhasil di-push ke GitHub!', 'success');
+      } else {
+        Utils.showToast('❌ Gagal: ' + r.error, 'error');
+      }
+    }
+  );
+}
+
 function exportCSV() {
   const trx = DB.getTransactions();
   const header = ['ID','Tanggal','Tipe','Kategori','Akun','Nominal','Keterangan','Akun Tujuan'];
