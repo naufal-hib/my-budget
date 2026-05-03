@@ -566,6 +566,8 @@ input[type=range] { accent-color: var(--accent2); width: 100%; height: 4px; }
       <div class="topbar-actions">
         <div class="icon-btn" onclick="changePeriod(-1)" title="Bulan sebelumnya">‹</div>
         <div class="icon-btn" onclick="changePeriod(1)" title="Bulan berikutnya">›</div>
+        <div class="icon-btn" onclick="setAsPeriodAktif()" title="Tetapkan sebagai Periode Aktif" style="color:var(--accent);font-weight:600;font-size:15px">★</div>
+        <div class="icon-btn" onclick="showCrossDeviceModal()" title="Login di HP lain">📱</div>
         <div class="icon-btn" onclick="syncNow()" title="Sinkronisasi">⟳</div>
       </div>
     </div>
@@ -2329,6 +2331,28 @@ function importJSON() {
 // ============================================================
 
 // ── ALLOCATIONS ──────────────────────────────────────────
+
+async function setAsPeriodAktif() {
+  var viewP   = currentFilter.bulan || Utils.currentPeriod();
+  var activeP = DB.getMeta().activePeriod;
+  if (viewP === activeP) {
+    Utils.showToast(Utils.formatMonthYear(viewP) + ' sudah jadi periode aktif', 'info');
+    return;
+  }
+  Utils.confirm(
+    'Tetapkan <b>' + Utils.formatMonthYear(viewP) + '</b> sebagai Periode Aktif?<br><br>Jatah & alokasi akan mengacu ke bulan ini.',
+    async function() {
+      DB.saveMeta('activePeriod', viewP);
+      currentFilter.bulan = viewP;
+      DB.syncAllocations();
+      Utils.showLoading('Menyimpan...');
+      await DB.push();
+      Utils.hideLoading();
+      Utils.showToast('Periode aktif → ' + Utils.formatMonthYear(viewP), 'success');
+      renderDashboard();
+    }
+  );
+}
 function renderAllocations() {
   const period = DB.getMeta().activePeriod;
   DB.syncAllocations();
