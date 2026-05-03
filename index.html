@@ -328,6 +328,12 @@ textarea.inp { resize: vertical; min-height: 90px; line-height: 1.6; }
   width: 100px; height: 100px;
   border-radius: 50%;
   background: rgba(167,139,250,.06);
+  pointer-events: none;
+  z-index: 0;
+}
+.hero-card > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* ── Onboarding ── */
@@ -1714,13 +1720,21 @@ async function initApp() {
   hideQuickConnect();
   updatePeriod();
 
-  if (DB.isSetup()) {
-    const r = await DB.pull();
-    if (!r.ok) Utils.showToast('Offline - data dari cache lokal', 'warning');
-  }
-
+  // Render dari cache dulu (fast) supaya user langsung lihat data
   DB.syncAllocations();
   renderAll();
+
+  // Pull dari GitHub di background, lalu update tampilan
+  if (DB.isSetup()) {
+    const r = await DB.pull();
+    if (r.ok) {
+      DB.syncAllocations();
+      renderAll();
+    } else {
+      Utils.showToast('Offline - data dari cache lokal', 'warning');
+    }
+  }
+
   WA.checkReminders();
 }
 
@@ -1818,7 +1832,7 @@ function goTo(page) {
   var showFab = ['dash','trx','alloc','debts'].indexOf(page) !== -1;
   if (fab) fab.style.display = showFab ? 'flex' : 'none';
 
-  if (page === 'dash')       renderDashboard();
+  if (page === 'dash')       { if (!currentFilter.bulan) updatePeriod(); renderDashboard(); }
   if (page === 'trx')        renderTransactions();
   if (page === 'alloc')      renderAllocations();
   if (page === 'debts')      renderDebts();
@@ -1839,24 +1853,37 @@ function fabAction() {
 
 // ── DASHBOARD ────────────────────────────────────────────
 function renderDashboard() {
-  const period = DB.getMeta().activePeriod || Utils.currentPeriod();
-  const trx = DB.getTransactions().filter(t => t.tanggal?.startsWith(period));
+  try {
+  const viewPeriod = currentFilter.bulan || DB.getMeta().activePeriod || Utils.currentPeriod();
+  const activePeriod = DB.getMeta().activePeriod || Utils.currentPeriod();
+  const period = viewPeriod;
+  const isViewingOtherPeriod = viewPeriod !== activePeriod;
+
+  const trx = DB.getTransactions().filter(t => t.tanggal && t.tanggal.startsWith(period));
   const accounts = DB.getAccounts().filter(a => a.status === 'Aktif');
 
-  const totalAset = accounts.reduce((s, a) => s + (a.saldoSekarang || 0), 0);
-  const pemasukan = trx.filter(t => t.tipe === 'Pemasukan').reduce((s, t) => s + t.nominal, 0);
-  const pengeluaran = trx.filter(t => t.tipe === 'Pengeluaran').reduce((s, t) => s + t.nominal, 0);
-  const totalUtang = DB.getDebts().filter(d => d.status === 'Aktif' && d.tipe === 'Utang').reduce((s, d) => s + d.sisa, 0);
+  const totalAset = accounts.reduce((s, a) => s + (Number(a.saldoSekarang) || 0), 0);
+  const pemasukan = trx.filter(t => t.tipe === 'Pemasukan').reduce((s, t) => s + (Number(t.nominal) || 0), 0);
+  const pengeluaran = trx.filter(t => t.tipe === 'Pengeluaran').reduce((s, t) => s + (Number(t.nominal) || 0), 0);
+  const totalUtang = DB.getDebts().filter(d => d.status === 'Aktif' && d.tipe === 'Utang').reduce((s, d) => s + (Number(d.sisa) || 0), 0);
 
   const R = Utils.formatRupiah;
   const Rs = (n) => Utils.formatRupiah(n, true);
 
   // Hero
-  document.getElementById('dash-total-aset').textContent = R(totalAset);
-  document.getElementById('dash-pemasukan').textContent = '+' + Rs(pemasukan);
-  document.getElementById('dash-pengeluaran').textContent = '-' + Rs(pengeluaran);
-  document.getElementById('dash-utang').textContent = Rs(totalUtang);
-  document.getElementById('dash-period').textContent = Utils.formatMonthYear(period);
+  const totalAsetEl = document.getElementById('dash-total-aset');
+  if (totalAsetEl) totalAsetEl.textContent = R(totalAset);
+  const pemasukanEl = document.getElementById('dash-pemasukan');
+  if (pemasukanEl) pemasukanEl.textContent = '+' + Rs(pemasukan);
+  const pengeluaranEl = document.getElementById('dash-pengeluaran');
+  if (pengeluaranEl) pengeluaranEl.textContent = '-' + Rs(pengeluaran);
+  const utangEl = document.getElementById('dash-utang');
+  if (utangEl) utangEl.textContent = Rs(totalUtang);
+  const periodEl = document.getElementById('dash-period');
+  if (periodEl) {
+    periodEl.textContent = Utils.formatMonthYear(period) + (isViewingOtherPeriod ? ' (lihat)' : ' · Aktif');
+    periodEl.style.color = isViewingOtherPeriod ? 'var(--yellow)' : '';
+  }
 
   // Accounts scroll
   const accEl = document.getElementById('dash-accounts');
@@ -1932,8 +1959,8 @@ function renderDashboard() {
       </div>`;
     }).join('');
   }
+  } catch(err) { console.error("renderDashboard error:", err); }
 }
-
 // ── TRANSACTIONS ─────────────────────────────────────────
 function renderTransactions() {
   const period = currentFilter.bulan || DB.getMeta().activePeriod;
