@@ -2889,55 +2889,11 @@ const WA_VARS = {
 };
 
 const WA_DEFAULTS = {
-  daily:         '📊 *RINGKASAN HARIAN*
-{tanggal}
-
-💰 Masuk: {pemasukan}
-💸 Keluar: {pengeluaran}
-💵 Saldo: {saldo}
-
-Top Pengeluaran:
-{top_kategori}
-
-{pesan_motivasi}',
-  weekly:        '📈 *RINGKASAN MINGGUAN*
-Minggu {minggu_ke}, {bulan}
-
-💰 Masuk: {pemasukan}
-💸 Keluar: {pengeluaran}
-💵 Selisih: {saldo}
-
-Top Pengeluaran:
-{top_kategori}
-
-{pesan_motivasi}',
-  monthly:       '📋 *LAPORAN BULANAN*
-Periode: {periode}
-
-💰 Pemasukan: {pemasukan}
-💸 Pengeluaran: {pengeluaran}
-💵 Saving Rate: {saving_rate}%
-
-Per Jatah:
-{detail_jatah}
-
-{pesan_motivasi}',
-  budgetWarning: '⚠️ *JATAH HAMPIR HABIS*
-
-Jatah *{nama_jatah}* sudah {persen}% terpakai!
-💰 Alokasi: {alokasi}
-💸 Terpakai: {terpakai}
-💵 Sisa: {sisa}
-
-Bijak ya dalam belanja 🙏',
-  debtReminder:  '🔔 *REMINDER UTANG*
-
-Hai! Utang ke *{nama_pihak}* jatuh tempo {hari} hari lagi.
-
-📅 Jatuh Tempo: {jatuh_tempo}
-💰 Sisa: {sisa}
-
-Jangan lupa ya! 💪'
+  daily:         '\u{1F4CA} *RINGKASAN HARIAN*\n{tanggal}\n\n\u{1F4B0} Masuk: {pemasukan}\n\u{1F4B8} Keluar: {pengeluaran}\n\u{1F4B5} Saldo: {saldo}\n\nTop Pengeluaran:\n{top_kategori}\n\n{pesan_motivasi}',
+  weekly:        '\u{1F4C8} *RINGKASAN MINGGUAN*\nMinggu {minggu_ke}, {bulan}\n\n\u{1F4B0} Masuk: {pemasukan}\n\u{1F4B8} Keluar: {pengeluaran}\n\u{1F4B5} Selisih: {saldo}\n\nTop Pengeluaran:\n{top_kategori}\n\n{pesan_motivasi}',
+  monthly:       '\u{1F4CB} *LAPORAN BULANAN*\nPeriode: {periode}\n\n\u{1F4B0} Pemasukan: {pemasukan}\n\u{1F4B8} Pengeluaran: {pengeluaran}\n\u{1F4B5} Saving Rate: {saving_rate}%\n\nPer Jatah:\n{detail_jatah}\n\n{pesan_motivasi}',
+  budgetWarning: '\u26A0\uFE0F *JATAH HAMPIR HABIS*\n\nJatah *{nama_jatah}* sudah {persen}% terpakai!\n\u{1F4B0} Alokasi: {alokasi}\n\u{1F4B8} Terpakai: {terpakai}\n\u{1F4B5} Sisa: {sisa}\n\nBijak ya dalam belanja \u{1F64F}',
+  debtReminder:  '\u{1F514} *REMINDER UTANG*\n\nHai! Utang ke *{nama_pihak}* jatuh tempo {hari} hari lagi.\n\n\u{1F4C5} Jatuh Tempo: {jatuh_tempo}\n\u{1F4B0} Sisa: {sisa}\n\nJangan lupa ya! \u{1F4AA}'
 };
 
 function renderWAPage() {
@@ -3027,15 +2983,11 @@ function renderWATemplatePreview() {
   const previewVars = {
     tanggal: new Date().toLocaleDateString('id-ID', {weekday:'long',day:'numeric',month:'long',year:'numeric'}),
     pemasukan: 'Rp 500.000', pengeluaran: 'Rp 185.000', saldo: 'Rp 315.000',
-    top_kategori: '1. Makanan: Rp 75.000
-2. Transport: Rp 60.000
-3. Pulsa: Rp 50.000',
-    pesan_motivasi: 'Alhamdulillah, keuangan hari ini positif! 🌟',
+    top_kategori: '1. Makanan: Rp 75.000\n2. Transport: Rp 60.000\n3. Pulsa: Rp 50.000',
+    pesan_motivasi: 'Alhamdulillah, keuangan hari ini positif!',
     minggu_ke: '1', bulan: new Date().toLocaleDateString('id-ID',{month:'long',year:'numeric'}),
     periode: Utils.formatMonthYear(DB.getMeta().activePeriod),
-    saving_rate: '63', detail_jatah: '• Pengeluaran Dasar: 82% (Rp 571rb / 700rb)
-• Hiburan: 30% (Rp 60rb / 200rb)
-• Sodaqoh: 8% (Rp 55rb / 700rb)',
+    saving_rate: '63', detail_jatah: '- Pengeluaran Dasar: 82%\n- Hiburan: 30%\n- Sodaqoh: 8%',
     nama_jatah: 'Pengeluaran Dasar', persen: '85', alokasi: 'Rp 700.000',
     terpakai: 'Rp 595.000', sisa: 'Rp 105.000',
     nama_pihak: 'Om Adi', hari: '7',
@@ -3186,19 +3138,9 @@ async function kirimSekarang(type) {
     const totalUtang = DB.getDebts().filter(d => d.status === 'Aktif' && d.tipe === 'Utang').reduce((s, d) => s + d.sisa, 0);
     const totalPiutang = DB.getDebts().filter(d => d.status === 'Aktif' && d.tipe === 'Piutang').reduce((s, d) => s + d.sisa, 0);
     const tipeEmoji = { Bank: '🏦', Cash: '💵', 'E-wallet': '📱', Investasi: '📊' };
-    const accDetail = accounts.map(a => `${tipeEmoji[a.tipe] || '💰'} *${a.nama}*: ${Utils.formatRupiah(a.saldoSekarang)}`).join('
-');
-    const msg = `💰 *RINGKASAN SALDO*
-${new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
-
-📊 Total Aset: ${Utils.formatRupiah(totalAset)}
-
-${accDetail}
-
-💸 Total Utang: ${Utils.formatRupiah(totalUtang)}
-💰 Total Piutang: ${Utils.formatRupiah(totalPiutang)}
-
-💎 Net Worth: ${Utils.formatRupiah(totalAset - totalUtang + totalPiutang)}`;
+    const accDetail = accounts.map(a => (tipeEmoji[a.tipe] || '💰') + ' *' + a.nama + '*: ' + Utils.formatRupiah(a.saldoSekarang)).join('\n');
+    const tgl = new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    const msg = '💰 *RINGKASAN SALDO*\n' + tgl + '\n\n📊 Total Aset: ' + Utils.formatRupiah(totalAset) + '\n\n' + accDetail + '\n\n💸 Total Utang: ' + Utils.formatRupiah(totalUtang) + '\n💰 Total Piutang: ' + Utils.formatRupiah(totalPiutang) + '\n\n💎 Net Worth: ' + Utils.formatRupiah(totalAset - totalUtang + totalPiutang);
     r = await WA.sendCustom(msg);
   }
 
