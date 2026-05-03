@@ -559,8 +559,9 @@ input[type=range] { accent-color: var(--accent2); width: 100%; height: 4px; }
         <div class="topbar-sub" id="dash-period">Mei 2026</div>
       </div>
       <div class="topbar-actions">
-        <div class="icon-btn" onclick="changePeriod(-1)" title="Bulan sebelumnya">‹</div>
-        <div class="icon-btn" onclick="changePeriod(1)" title="Bulan berikutnya">›</div>
+        <div class="icon-btn" onclick="changePeriod(-1)" title="Bulan sebelumnya" style="font-size:18px">‹</div>
+        <div class="icon-btn" onclick="changePeriod(1)" title="Bulan berikutnya" style="font-size:18px">›</div>
+        <div class="icon-btn" onclick="setAsPeriodAktif()" title="Jadikan bulan ini sebagai Periode Aktif" style="font-size:13px;font-weight:600;color:var(--accent)">★</div>
         <div class="icon-btn" onclick="syncNow()" title="Sinkronisasi">⟳</div>
       </div>
     </div>
@@ -716,95 +717,179 @@ input[type=range] { accent-color: var(--accent2); width: 100%; height: 4px; }
   <div class="screen" id="screen-wa">
     <div class="topbar">
       <div>
-        <div class="topbar-title">WhatsApp</div>
+        <div class="topbar-title">WhatsApp Notifikasi</div>
         <div class="topbar-sub" id="wa-status">● Nonaktif</div>
       </div>
       <span class="chip chip-green" style="font-size:11px">Fonnte</span>
     </div>
     <div class="screen-content">
-      <!-- Jadwal Notifikasi -->
+
+      <!-- Status & Enable -->
+      <div class="card" style="background:rgba(52,211,153,.06);border-color:rgba(52,211,153,.15)">
+        <div class="toggle-wrap" style="border-bottom:none;padding:0">
+          <div>
+            <div class="fw500">Aktifkan WhatsApp Notifikasi</div>
+            <div class="text-xs text-muted mt4">Semua notifikasi via Fonnte API</div>
+          </div>
+          <button id="wa-master-toggle" class="toggle off" onclick="toggleWAMaster(this)"><div class="toggle-thumb"></div></button>
+        </div>
+      </div>
+
+      <!-- Kirim Notif Sekarang -->
       <div class="card">
-        <div class="section-title mb12">Jadwal & Aktifasi</div>
+        <div class="section-title mb12">Kirim Notifikasi Sekarang</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+
+          <div class="card-sm" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+            <div>
+              <div class="text-sm fw500">📊 Ringkasan Harian</div>
+              <div class="text-xs text-muted">Transaksi hari ini</div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="kirimSekarang('daily')">Kirim ▶</button>
+          </div>
+
+          <div class="card-sm" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+            <div>
+              <div class="text-sm fw500">📈 Ringkasan Mingguan</div>
+              <div class="text-xs text-muted">7 hari terakhir</div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="kirimSekarang('weekly')">Kirim ▶</button>
+          </div>
+
+          <div class="card-sm" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+            <div>
+              <div class="text-sm fw500">📋 Laporan Bulanan</div>
+              <div class="text-xs text-muted">Periode aktif</div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="kirimSekarang('monthly')">Kirim ▶</button>
+          </div>
+
+          <div class="card-sm" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+            <div>
+              <div class="text-sm fw500">⚠️ Cek Jatah Hampir Habis</div>
+              <div class="text-xs text-muted">Semua jatah > threshold</div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="kirimSekarang('budgetcheck')">Kirim ▶</button>
+          </div>
+
+          <div class="card-sm" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+            <div>
+              <div class="text-sm fw500">🔔 Reminder Utang Jatuh Tempo</div>
+              <div class="text-xs text-muted">Utang dalam 7 hari ke depan</div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="kirimSekarang('debtcheck')">Kirim ▶</button>
+          </div>
+
+          <div class="card-sm" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+            <div>
+              <div class="text-sm fw500">💰 Ringkasan Saldo Semua Akun</div>
+              <div class="text-xs text-muted">Total aset & per akun</div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="kirimSekarang('balance')">Kirim ▶</button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Jadwal Otomatis -->
+      <div class="card">
+        <div class="section-title mb12">Jadwal Otomatis (via GitHub Actions)</div>
+        <div class="card-sm" style="background:rgba(251,191,36,.06);border-color:rgba(251,191,36,.2);margin-bottom:12px">
+          <div class="text-xs" style="color:var(--yellow)">⚠️ Jadwal otomatis membutuhkan GitHub Actions aktif di repo kamu + secrets FONNTE_API_KEY & WA_NUMBER diisi.</div>
+        </div>
+
         <div class="toggle-wrap">
           <div>
             <div class="text-sm fw500">Ringkasan Harian</div>
             <div class="row" style="gap:6px;margin-top:4px;align-items:center">
               <span class="text-xs text-muted">Jam</span>
-              <input id="wa-daily-time" class="inp" type="time" value="08:00" style="width:110px;padding:4px 8px">
+              <input id="wa-daily-time" class="inp" type="time" value="08:00" style="width:110px;padding:5px 8px">
             </div>
           </div>
-          <button id="wa-tog-daily" class="toggle off" onclick="this.classList.toggle('on');this.classList.toggle('off');this.innerHTML='<div class=toggle-thumb></div>'"><div class="toggle-thumb"></div></button>
+          <button id="wa-tog-daily" class="toggle off" onclick="togWA(this,'dailyEnabled')"><div class="toggle-thumb"></div></button>
         </div>
+
         <div class="toggle-wrap">
           <div>
             <div class="text-sm fw500">Ringkasan Mingguan</div>
             <div class="row" style="gap:6px;margin-top:4px;flex-wrap:wrap">
-              <select id="wa-weekly-day" class="inp" style="width:120px;padding:4px 8px">
-                <option value="1">Senin</option><option value="2">Selasa</option><option value="3">Rabu</option>
-                <option value="4">Kamis</option><option value="5">Jumat</option><option value="0">Minggu</option>
+              <select id="wa-weekly-day" class="inp" style="width:110px;padding:5px 8px">
+                <option value="1">Senin</option><option value="2">Selasa</option>
+                <option value="3">Rabu</option><option value="4">Kamis</option>
+                <option value="5">Jumat</option><option value="6">Sabtu</option>
+                <option value="0">Minggu</option>
               </select>
-              <input id="wa-weekly-time" class="inp" type="time" value="07:00" style="width:100px;padding:4px 8px">
+              <input id="wa-weekly-time" class="inp" type="time" value="07:00" style="width:100px;padding:5px 8px">
             </div>
           </div>
-          <button id="wa-tog-weekly" class="toggle off" onclick="this.classList.toggle('on');this.classList.toggle('off');this.innerHTML='<div class=toggle-thumb></div>'"><div class="toggle-thumb"></div></button>
+          <button id="wa-tog-weekly" class="toggle off" onclick="togWA(this,'weeklyEnabled')"><div class="toggle-thumb"></div></button>
         </div>
+
         <div class="toggle-wrap">
           <div>
             <div class="text-sm fw500">Laporan Bulanan</div>
-            <div class="text-xs text-muted">Tanggal 1 tiap bulan jam 07:00</div>
+            <div class="text-xs text-muted mt4">Tanggal 1 tiap bulan jam 07:00</div>
           </div>
-          <button id="wa-tog-monthly" class="toggle off" onclick="this.classList.toggle('on');this.classList.toggle('off');this.innerHTML='<div class=toggle-thumb></div>'"><div class="toggle-thumb"></div></button>
+          <button id="wa-tog-monthly" class="toggle off" onclick="togWA(this,'monthlyEnabled')"><div class="toggle-thumb"></div></button>
         </div>
+
         <div class="toggle-wrap">
           <div>
             <div class="text-sm fw500">Alert Jatah Hampir Habis</div>
             <div class="row" style="gap:6px;margin-top:4px;align-items:center">
               <span class="text-xs text-muted">Warn di</span>
-              <input id="wa-budget-threshold" class="inp" type="number" min="1" max="100" value="80" style="width:70px;padding:4px 8px">
+              <input id="wa-budget-threshold" class="inp" type="number" min="1" max="100" value="80" style="width:65px;padding:5px 8px">
               <span class="text-xs text-muted">%</span>
             </div>
           </div>
-          <button id="wa-tog-budget" class="toggle off" onclick="this.classList.toggle('on');this.classList.toggle('off');this.innerHTML='<div class=toggle-thumb></div>'"><div class="toggle-thumb"></div></button>
+          <button id="wa-tog-budget" class="toggle off" onclick="togWA(this,'budgetWarningEnabled')"><div class="toggle-thumb"></div></button>
         </div>
+
         <div class="toggle-wrap" style="border-bottom:none">
           <div>
-            <div class="text-sm fw500">Reminder Utang</div>
-            <div class="text-xs text-muted">H-7, H-3, H-1 sebelum jatuh tempo</div>
+            <div class="text-sm fw500">Reminder Utang Jatuh Tempo</div>
+            <div class="text-xs text-muted mt4">H-7, H-3, H-1 sebelum jatuh tempo</div>
           </div>
-          <button id="wa-tog-debt" class="toggle off" onclick="this.classList.toggle('on');this.classList.toggle('off');this.innerHTML='<div class=toggle-thumb></div>'"><div class="toggle-thumb"></div></button>
+          <button id="wa-tog-debt" class="toggle off" onclick="togWA(this,'debtReminderEnabled')"><div class="toggle-thumb"></div></button>
         </div>
-        <button class="btn btn-primary btn-full" style="margin-top:12px" onclick="saveWASchedule()">Simpan Jadwal</button>
+
+        <button class="btn btn-primary btn-full" style="margin-top:14px" onclick="saveWASchedule()">Simpan Jadwal</button>
       </div>
 
       <!-- Template Editor -->
       <div class="card">
         <div class="section-title mb12">Edit Template Pesan</div>
         <div class="form-group">
-          <label class="form-label">Jenis Notifikasi</label>
+          <label class="form-label">Pilih Jenis Notifikasi</label>
           <select id="wa-tpl-select" class="inp" onchange="renderWATemplatePreview()">
-            <option value="daily">Ringkasan Harian</option>
-            <option value="weekly">Ringkasan Mingguan</option>
-            <option value="monthly">Laporan Bulanan</option>
-            <option value="budgetWarning">Jatah Hampir Habis</option>
-            <option value="debtReminder">Reminder Utang</option>
+            <option value="daily">📊 Ringkasan Harian</option>
+            <option value="weekly">📈 Ringkasan Mingguan</option>
+            <option value="monthly">📋 Laporan Bulanan</option>
+            <option value="budgetWarning">⚠️ Jatah Hampir Habis</option>
+            <option value="debtReminder">🔔 Reminder Utang</option>
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">Template (gunakan {variabel} untuk data dinamis)</label>
-          <textarea id="wa-tpl-text" class="inp" rows="7" oninput="renderWATemplatePreview()"></textarea>
-          <div class="text-xs text-muted mt4">Variabel: {tanggal} {pemasukan} {pengeluaran} {saldo} {top_kategori} {pesan_motivasi} {periode} {saving_rate} {detail_jatah} {nama_jatah} {persen} {alokasi} {terpakai} {sisa} {nama_pihak} {hari} {jatuh_tempo}</div>
+          <label class="form-label">Teks Template</label>
+          <textarea id="wa-tpl-text" class="inp" rows="8" oninput="renderWATemplatePreview()"></textarea>
         </div>
-        <div class="label mt8">Preview Pesan</div>
-        <div class="wa-preview" id="wa-preview"></div>
+        <div class="card-sm" style="margin-bottom:12px">
+          <div class="label mb4">Variabel yang bisa dipakai</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px" id="wa-var-chips"></div>
+        </div>
+        <div class="label mb4">Preview Pesan</div>
+        <div class="wa-preview" id="wa-preview">—</div>
         <div style="display:flex;gap:8px;margin-top:12px">
-          <button class="btn btn-ghost" style="flex:1" onclick="saveWATemplate()">Simpan Template</button>
-          <button class="btn btn-success" style="flex:1" onclick="sendWATest()">Kirim Test ▶</button>
+          <button class="btn btn-ghost" style="flex:1" onclick="resetWATemplate()">Reset Default</button>
+          <button class="btn btn-ghost" style="flex:1" onclick="saveWATemplate()">Simpan</button>
+          <button class="btn btn-success" style="flex:1" onclick="sendWATest()">Test ▶</button>
         </div>
       </div>
+
     </div>
   </div>
 
-  <!-- ── REPORTS ───────────────────────────────────── -->
+    <!-- ── REPORTS ───────────────────────────────────── -->
   <div class="screen" id="screen-reports">
     <div class="topbar">
       <div class="topbar-title">Laporan</div>
@@ -856,8 +941,9 @@ input[type=range] { accent-color: var(--accent2); width: 100%; height: 4px; }
           <input id="set-owner" class="inp" placeholder="Nama kamu">
         </div>
         <div class="form-group">
-          <label class="form-label">Periode Aktif</label>
+          <label class="form-label">Periode Aktif (Bulan Acuan Data)</label>
           <input id="set-period" class="inp" type="month">
+          <div class="text-xs text-muted mt4">Periode ini digunakan untuk Jatah/Alokasi & default tampilan. Kamu tetap bisa lihat bulan lain di Dashboard & Transaksi pakai tombol ‹ ›.</div>
         </div>
         <div class="form-group">
           <label class="form-label">Threshold Warning Jatah (%)</label>
@@ -949,9 +1035,9 @@ input[type=range] { accent-color: var(--accent2); width: 100%; height: 4px; }
       <div class="nav-icon">◎</div>
       <div class="nav-label">Jatah</div>
     </button>
-    <button class="nav-item" id="nav-debts" onclick="goTo('debts')">
-      <div class="nav-icon">💳</div>
-      <div class="nav-label">Utang</div>
+    <button class="nav-item" id="nav-wa" onclick="goTo('wa')">
+      <div class="nav-icon" style="position:relative">💬<span id="nav-wa-dot" style="display:none;position:absolute;top:-2px;right:-2px;width:7px;height:7px;border-radius:50%;background:var(--red);border:2px solid var(--bg2)"></span></div>
+      <div class="nav-label">WhatsApp</div>
     </button>
     <button class="nav-item" id="nav-settings" onclick="goTo('settings')">
       <div class="nav-icon">⚙</div>
@@ -1658,10 +1744,15 @@ function renderAll() {
 
 function updatePeriod() {
   const meta = DB.getMeta();
+  // Jika belum ada activePeriod, set ke bulan ini
   if (!meta.activePeriod) {
     DB.saveMeta('activePeriod', Utils.currentPeriod());
   }
-  currentFilter.bulan = meta.activePeriod || Utils.currentPeriod();
+  // viewPeriod (filter tampilan) dimulai dari activePeriod
+  // User bisa scroll mundur/maju tanpa mengubah activePeriod
+  if (!currentFilter.bulan) {
+    currentFilter.bulan = meta.activePeriod || Utils.currentPeriod();
+  }
 }
 
 // ── Navigation ───────────────────────────────────────────
@@ -1675,6 +1766,11 @@ function goTo(page) {
 
   const navEl = document.getElementById('nav-' + page);
   if (navEl) navEl.classList.add('active');
+
+  // WA icon dot
+  const waDot = document.getElementById('nav-wa-dot');
+  const waCfg = DB.getConfig()?.whatsapp;
+  if (waDot) waDot.style.display = waCfg?.enabled ? 'block' : 'none';
 
   const fab = document.getElementById('main-fab');
   const showFab = ['dash','trx','alloc','debts'].includes(page);
@@ -1701,7 +1797,12 @@ function fabAction() {
 
 // ── DASHBOARD ────────────────────────────────────────────
 function renderDashboard() {
-  const period = DB.getMeta().activePeriod || Utils.currentPeriod();
+  // viewPeriod = bulan yang sedang dilihat (bisa berbeda dari activePeriod)
+  const viewPeriod = currentFilter.bulan || DB.getMeta().activePeriod || Utils.currentPeriod();
+  const activePeriod = DB.getMeta().activePeriod || Utils.currentPeriod();
+  const period = viewPeriod;
+  const isViewingOtherPeriod = viewPeriod !== activePeriod;
+
   const trx = DB.getTransactions().filter(t => t.tanggal?.startsWith(period));
   const accounts = DB.getAccounts().filter(a => a.status === 'Aktif');
 
@@ -1718,7 +1819,13 @@ function renderDashboard() {
   document.getElementById('dash-pemasukan').textContent = '+' + Rs(pemasukan);
   document.getElementById('dash-pengeluaran').textContent = '-' + Rs(pengeluaran);
   document.getElementById('dash-utang').textContent = Rs(totalUtang);
-  document.getElementById('dash-period').textContent = Utils.formatMonthYear(period);
+  // Tampilkan periode yang sedang dilihat, dengan indikator jika bukan periode aktif
+  const periodLabel = Utils.formatMonthYear(period);
+  const activeBadge = isViewingOtherPeriod
+    ? ` · Aktif: ${Utils.formatMonthYear(activePeriod)}`
+    : ' · Periode Aktif';
+  document.getElementById('dash-period').textContent = periodLabel + activeBadge;
+  document.getElementById('dash-period').style.color = isViewingOtherPeriod ? 'var(--yellow)' : '';
 
   // Accounts scroll
   const accEl = document.getElementById('dash-accounts');
@@ -1862,12 +1969,34 @@ function setFilter(key, val) {
 }
 
 function changePeriod(dir) {
-  const [y, m] = (currentFilter.bulan || Utils.currentPeriod()).split('-').map(Number);
+  // viewPeriod = hanya filter tampilan, TIDAK mengubah activePeriod di database
+  const [y, m] = (currentFilter.bulan || DB.getMeta().activePeriod || Utils.currentPeriod()).split('-').map(Number);
   const d = new Date(y, m - 1 + dir, 1);
   const newP = d.toISOString().slice(0, 7);
   currentFilter.bulan = newP;
   if (currentPage === 'trx') renderTransactions();
-  if (currentPage === 'dash') { DB.saveMeta('activePeriod', newP); renderDashboard(); }
+  if (currentPage === 'dash') renderDashboard();
+}
+
+async function setAsPeriodAktif() {
+  const viewP = currentFilter.bulan || Utils.currentPeriod();
+  const activeP = DB.getMeta().activePeriod;
+  if (viewP === activeP) {
+    Utils.showToast(`${Utils.formatMonthYear(viewP)} sudah jadi periode aktif`, 'info');
+    return;
+  }
+  Utils.confirm(
+    `Tetapkan <b>${Utils.formatMonthYear(viewP)}</b> sebagai Periode Aktif?<br><br>Jatah & alokasi akan mengacu ke bulan ini.`,
+    async () => {
+      DB.saveMeta('activePeriod', viewP);
+      DB.syncAllocations();
+      Utils.showLoading('Menyimpan...');
+      await DB.push();
+      Utils.hideLoading();
+      Utils.showToast(`✅ Periode aktif → ${Utils.formatMonthYear(viewP)}`, 'success');
+      renderDashboard();
+    }
+  );
 }
 
 // ── TRANSACTION MODAL ────────────────────────────────────
@@ -2750,95 +2879,332 @@ async function deleteCat(id) {
 }
 
 // ── WHATSAPP PAGE ─────────────────────────────────────────
+
+const WA_VARS = {
+  daily:         ['{tanggal}','{pemasukan}','{pengeluaran}','{saldo}','{top_kategori}','{pesan_motivasi}'],
+  weekly:        ['{minggu_ke}','{bulan}','{pemasukan}','{pengeluaran}','{saldo}','{top_kategori}','{pesan_motivasi}'],
+  monthly:       ['{periode}','{pemasukan}','{pengeluaran}','{saving_rate}','{detail_jatah}','{pesan_motivasi}'],
+  budgetWarning: ['{nama_jatah}','{persen}','{alokasi}','{terpakai}','{sisa}'],
+  debtReminder:  ['{nama_pihak}','{hari}','{jatuh_tempo}','{sisa}']
+};
+
+const WA_DEFAULTS = {
+  daily:         '📊 *RINGKASAN HARIAN*
+{tanggal}
+
+💰 Masuk: {pemasukan}
+💸 Keluar: {pengeluaran}
+💵 Saldo: {saldo}
+
+Top Pengeluaran:
+{top_kategori}
+
+{pesan_motivasi}',
+  weekly:        '📈 *RINGKASAN MINGGUAN*
+Minggu {minggu_ke}, {bulan}
+
+💰 Masuk: {pemasukan}
+💸 Keluar: {pengeluaran}
+💵 Selisih: {saldo}
+
+Top Pengeluaran:
+{top_kategori}
+
+{pesan_motivasi}',
+  monthly:       '📋 *LAPORAN BULANAN*
+Periode: {periode}
+
+💰 Pemasukan: {pemasukan}
+💸 Pengeluaran: {pengeluaran}
+💵 Saving Rate: {saving_rate}%
+
+Per Jatah:
+{detail_jatah}
+
+{pesan_motivasi}',
+  budgetWarning: '⚠️ *JATAH HAMPIR HABIS*
+
+Jatah *{nama_jatah}* sudah {persen}% terpakai!
+💰 Alokasi: {alokasi}
+💸 Terpakai: {terpakai}
+💵 Sisa: {sisa}
+
+Bijak ya dalam belanja 🙏',
+  debtReminder:  '🔔 *REMINDER UTANG*
+
+Hai! Utang ke *{nama_pihak}* jatuh tempo {hari} hari lagi.
+
+📅 Jatuh Tempo: {jatuh_tempo}
+💰 Sisa: {sisa}
+
+Jangan lupa ya! 💪'
+};
+
 function renderWAPage() {
   const cfg = DB.getConfig().whatsapp;
   const sch = cfg?.schedule || {};
+  const enabled = cfg?.enabled || false;
 
-  document.getElementById('wa-status').textContent = cfg?.enabled ? '● Aktif' : '● Nonaktif';
-  document.getElementById('wa-status').style.color = cfg?.enabled ? 'var(--green)' : 'var(--text3)';
+  // Master toggle
+  const masterEl = document.getElementById('wa-master-toggle');
+  if (masterEl) {
+    masterEl.className = `toggle ${enabled ? 'on' : 'off'}`;
+    masterEl.innerHTML = '<div class="toggle-thumb"></div>';
+  }
 
-  const toggles = [
-    ['wa-tog-daily', 'dailyEnabled'], ['wa-tog-weekly', 'weeklyEnabled'],
-    ['wa-tog-monthly', 'monthlyEnabled'], ['wa-tog-budget', 'budgetWarningEnabled'],
-    ['wa-tog-debt', 'debtReminderEnabled']
-  ];
-  toggles.forEach(([elId, key]) => {
+  document.getElementById('wa-status').textContent = enabled ? '● Aktif' : '● Nonaktif';
+  document.getElementById('wa-status').style.color = enabled ? 'var(--green)' : 'var(--text3)';
+
+  // Schedule toggles
+  const togMap = {
+    'wa-tog-daily': 'dailyEnabled', 'wa-tog-weekly': 'weeklyEnabled',
+    'wa-tog-monthly': 'monthlyEnabled', 'wa-tog-budget': 'budgetWarningEnabled',
+    'wa-tog-debt': 'debtReminderEnabled'
+  };
+  Object.entries(togMap).forEach(([elId, key]) => {
     const el = document.getElementById(elId);
     if (!el) return;
-    el.className = `toggle ${sch[key] !== false ? 'on' : 'off'}`;
+    const isOn = sch[key] !== false;
+    el.className = `toggle ${isOn ? 'on' : 'off'}`;
     el.innerHTML = '<div class="toggle-thumb"></div>';
   });
 
-  document.getElementById('wa-daily-time').value = sch.dailyTime || '08:00';
-  document.getElementById('wa-weekly-time').value = sch.weeklyTime || '07:00';
-  document.getElementById('wa-weekly-day').value = sch.weeklyDay || '1';
-  document.getElementById('wa-budget-threshold').value = sch.budgetWarningThreshold || 80;
+  // Times
+  const tf = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+  tf('wa-daily-time', sch.dailyTime || '08:00');
+  tf('wa-weekly-time', sch.weeklyTime || '07:00');
+  tf('wa-weekly-day', sch.weeklyDay || '1');
+  tf('wa-budget-threshold', sch.budgetWarningThreshold || 80);
+
+  // WA nav dot
+  const dot = document.getElementById('nav-wa-dot');
+  if (dot) dot.style.display = enabled ? 'block' : 'none';
+
   renderWATemplatePreview();
+}
+
+function toggleWAMaster(btn) {
+  btn.classList.toggle('on');
+  btn.classList.toggle('off');
+  btn.innerHTML = '<div class="toggle-thumb"></div>';
+  const isOn = btn.classList.contains('on');
+  DB.saveConfig('whatsapp.enabled', isOn);
+  document.getElementById('wa-status').textContent = isOn ? '● Aktif' : '● Nonaktif';
+  document.getElementById('wa-status').style.color = isOn ? 'var(--green)' : 'var(--text3)';
+  const dot = document.getElementById('nav-wa-dot');
+  if (dot) dot.style.display = isOn ? 'block' : 'none';
+  DB.push().then(r => {
+    if (r.ok) Utils.showToast(isOn ? '✅ WhatsApp diaktifkan' : '⭕ WhatsApp dinonaktifkan', isOn ? 'success' : 'info');
+  });
+}
+
+function togWA(btn, key) {
+  btn.classList.toggle('on');
+  btn.classList.toggle('off');
+  btn.innerHTML = '<div class="toggle-thumb"></div>';
 }
 
 function renderWATemplatePreview() {
   const key = document.getElementById('wa-tpl-select')?.value || 'daily';
   const cfg = DB.getConfig().whatsapp;
-  const tpl = cfg?.templates?.[key] || '';
-  document.getElementById('wa-tpl-text').value = tpl;
+  const tpl = cfg?.templates?.[key] || WA_DEFAULTS[key] || '';
+  const tplEl = document.getElementById('wa-tpl-text');
+  if (tplEl && (!tplEl._lastKey || tplEl._lastKey !== key)) {
+    tplEl.value = tpl;
+    tplEl._lastKey = key;
+  }
 
+  // Var chips
+  const chipEl = document.getElementById('wa-var-chips');
+  if (chipEl) {
+    const vars = WA_VARS[key] || [];
+    chipEl.innerHTML = vars.map(v =>
+      `<span class="chip chip-purple" style="cursor:pointer;font-size:10px" onclick="insertVar('${v}')" title="Klik untuk insert">${v}</span>`
+    ).join('');
+  }
+
+  // Build preview
   const previewVars = {
-    tanggal: Utils.formatDate(Utils.today(), {long:true}), pemasukan: 'Rp 0', pengeluaran: 'Rp 85.000',
-    saldo: '-Rp 85.000', top_kategori: '1. Makanan: Rp 50.000\n2. Transport: Rp 35.000',
-    pesan_motivasi: 'Tetap semangat! 💪', minggu_ke: '1', bulan: 'Mei 2026',
-    periode: Utils.formatMonthYear(DB.getMeta().activePeriod), saving_rate: '0',
-    detail_jatah: '• Pengeluaran Dasar: 70%', nama_jatah: 'Pengeluaran Dasar',
-    persen: '85', alokasi: 'Rp 700.000', terpakai: 'Rp 595.000', sisa: 'Rp 105.000',
-    nama_pihak: 'Om Adi', hari: '7', jatuh_tempo: '30 Sep 2026'
+    tanggal: new Date().toLocaleDateString('id-ID', {weekday:'long',day:'numeric',month:'long',year:'numeric'}),
+    pemasukan: 'Rp 500.000', pengeluaran: 'Rp 185.000', saldo: 'Rp 315.000',
+    top_kategori: '1. Makanan: Rp 75.000
+2. Transport: Rp 60.000
+3. Pulsa: Rp 50.000',
+    pesan_motivasi: 'Alhamdulillah, keuangan hari ini positif! 🌟',
+    minggu_ke: '1', bulan: new Date().toLocaleDateString('id-ID',{month:'long',year:'numeric'}),
+    periode: Utils.formatMonthYear(DB.getMeta().activePeriod),
+    saving_rate: '63', detail_jatah: '• Pengeluaran Dasar: 82% (Rp 571rb / 700rb)
+• Hiburan: 30% (Rp 60rb / 200rb)
+• Sodaqoh: 8% (Rp 55rb / 700rb)',
+    nama_jatah: 'Pengeluaran Dasar', persen: '85', alokasi: 'Rp 700.000',
+    terpakai: 'Rp 595.000', sisa: 'Rp 105.000',
+    nama_pihak: 'Om Adi', hari: '7',
+    jatuh_tempo: '30 September 2026'
   };
-  let preview = tpl;
+
+  const currentTpl = document.getElementById('wa-tpl-text')?.value || tpl;
+  let preview = currentTpl;
   Object.entries(previewVars).forEach(([k, v]) => { preview = preview.replaceAll(`{${k}}`, v); });
-  document.getElementById('wa-preview').textContent = preview;
+  const prevEl = document.getElementById('wa-preview');
+  if (prevEl) prevEl.textContent = preview;
+}
+
+function insertVar(varStr) {
+  const ta = document.getElementById('wa-tpl-text');
+  if (!ta) return;
+  const start = ta.selectionStart;
+  const end = ta.selectionEnd;
+  ta.value = ta.value.slice(0, start) + varStr + ta.value.slice(end);
+  ta.selectionStart = ta.selectionEnd = start + varStr.length;
+  ta.focus();
+  renderWATemplatePreview();
 }
 
 async function saveWASchedule() {
   const sch = {
-    dailyEnabled: document.getElementById('wa-tog-daily')?.classList.contains('on'),
-    dailyTime: document.getElementById('wa-daily-time')?.value || '08:00',
-    weeklyEnabled: document.getElementById('wa-tog-weekly')?.classList.contains('on'),
-    weeklyDay: document.getElementById('wa-weekly-day')?.value || '1',
-    weeklyTime: document.getElementById('wa-weekly-time')?.value || '07:00',
-    monthlyEnabled: document.getElementById('wa-tog-monthly')?.classList.contains('on'),
-    monthlyDay: '1', monthlyTime: '07:00',
-    budgetWarningEnabled: document.getElementById('wa-tog-budget')?.classList.contains('on'),
-    budgetWarningThreshold: parseInt(document.getElementById('wa-budget-threshold')?.value) || 80,
-    debtReminderEnabled: document.getElementById('wa-tog-debt')?.classList.contains('on'),
-    debtReminderDays: [7, 3, 1]
+    dailyEnabled:            document.getElementById('wa-tog-daily')?.classList.contains('on'),
+    dailyTime:               document.getElementById('wa-daily-time')?.value || '08:00',
+    weeklyEnabled:           document.getElementById('wa-tog-weekly')?.classList.contains('on'),
+    weeklyDay:               document.getElementById('wa-weekly-day')?.value || '1',
+    weeklyTime:              document.getElementById('wa-weekly-time')?.value || '07:00',
+    monthlyEnabled:          document.getElementById('wa-tog-monthly')?.classList.contains('on'),
+    monthlyDay:              '1', monthlyTime: '07:00',
+    budgetWarningEnabled:    document.getElementById('wa-tog-budget')?.classList.contains('on'),
+    budgetWarningThreshold:  parseInt(document.getElementById('wa-budget-threshold')?.value) || 80,
+    debtReminderEnabled:     document.getElementById('wa-tog-debt')?.classList.contains('on'),
+    debtReminderDays:        [7, 3, 1]
   };
   DB.saveConfig('whatsapp.schedule', sch);
-  Utils.showLoading('Menyimpan...');
-  await DB.push();
+  Utils.showLoading('Menyimpan jadwal...');
+  const r = await DB.push();
   Utils.hideLoading();
-  Utils.showToast('Jadwal notifikasi tersimpan ✓', 'success');
+  Utils.showToast(r.ok ? '✅ Jadwal tersimpan' : '⚠️ Tersimpan lokal: ' + r.error, r.ok ? 'success' : 'warning');
 }
 
 async function saveWATemplate() {
   const key = document.getElementById('wa-tpl-select')?.value;
   const tpl = document.getElementById('wa-tpl-text')?.value;
+  if (!key || tpl === undefined) return;
   DB.saveConfig(`whatsapp.templates.${key}`, tpl);
-  Utils.showLoading('Menyimpan...');
-  await DB.push();
+  const el = document.getElementById('wa-tpl-text');
+  if (el) el._lastKey = null; // force reload next time
+  Utils.showLoading('Menyimpan template...');
+  const r = await DB.push();
   Utils.hideLoading();
-  Utils.showToast('Template tersimpan ✓', 'success');
-  renderWATemplatePreview();
+  Utils.showToast(r.ok ? '✅ Template tersimpan' : '⚠️ Tersimpan lokal', r.ok ? 'success' : 'warning');
+}
+
+function resetWATemplate() {
+  const key = document.getElementById('wa-tpl-select')?.value || 'daily';
+  Utils.confirm(`Reset template "${key}" ke default?`, () => {
+    DB.saveConfig(`whatsapp.templates.${key}`, WA_DEFAULTS[key]);
+    const el = document.getElementById('wa-tpl-text');
+    if (el) { el.value = WA_DEFAULTS[key]; el._lastKey = null; }
+    renderWATemplatePreview();
+    Utils.showToast('Template direset ke default', 'info');
+  });
 }
 
 async function sendWATest() {
   const key = document.getElementById('wa-tpl-select')?.value || 'daily';
-  Utils.showLoading('Mengirim...');
+  Utils.showLoading('Mengirim test...');
   let r;
   if (key === 'daily') r = await WA.sendDaily();
   else if (key === 'weekly') r = await WA.sendWeekly();
   else if (key === 'monthly') r = await WA.sendMonthly();
-  else r = await WA.sendCustom(document.getElementById('wa-tpl-text')?.value || 'Test dari Dompet Ku');
+  else {
+    const msg = document.getElementById('wa-tpl-text')?.value || WA_DEFAULTS[key];
+    r = await WA.sendCustom(msg);
+  }
   Utils.hideLoading();
-  if (r.ok) Utils.showToast('Pesan terkirim! 🎉', 'success');
-  else Utils.showToast('Gagal kirim: ' + r.error, 'error');
+  if (r.ok) Utils.showToast('✅ Pesan terkirim!', 'success');
+  else Utils.showToast('❌ Gagal kirim: ' + r.error, 'error');
+}
+
+// ── Kirim Notifikasi Sekarang per kategori ────────────────
+async function kirimSekarang(type) {
+  const cfg = DB.getConfig().whatsapp;
+  if (!cfg?.apiKey || !cfg?.number) {
+    Utils.showToast('⚠️ API Key & nomor WA belum diisi di Pengaturan!', 'warning');
+    goTo('settings');
+    return;
+  }
+
+  Utils.showLoading('Mengirim...');
+  let r;
+
+  if (type === 'daily') {
+    r = await WA.sendDaily();
+  } else if (type === 'weekly') {
+    r = await WA.sendWeekly();
+  } else if (type === 'monthly') {
+    r = await WA.sendMonthly();
+  } else if (type === 'budgetcheck') {
+    // Kirim semua jatah yang warning/over
+    const period = DB.getMeta().activePeriod;
+    const threshold = cfg?.schedule?.budgetWarningThreshold || 80;
+    const warningAllocs = DB.getAllocations()
+      .filter(a => (a.bulan?.startsWith(period) || !a.bulan) && (a.progress || 0) >= threshold);
+    if (warningAllocs.length === 0) {
+      Utils.hideLoading();
+      Utils.showToast('ℹ️ Tidak ada jatah yang hampir habis', 'info');
+      return;
+    }
+    let allOk = true;
+    for (const alloc of warningAllocs) {
+      const res = await WA.sendBudgetWarning(alloc);
+      if (!res.ok) allOk = false;
+    }
+    Utils.hideLoading();
+    Utils.showToast(allOk ? `✅ Terkirim! (${warningAllocs.length} jatah)` : '⚠️ Sebagian gagal terkirim', allOk ? 'success' : 'warning');
+    return;
+  } else if (type === 'debtcheck') {
+    // Kirim reminder utang dalam 7 hari
+    const debts = DB.getDebts().filter(d => d.status === 'Aktif' && d.tipe === 'Utang');
+    const dueDebts = debts.filter(d => {
+      const days = Utils.daysUntil(d.tanggalJatuhTempo);
+      return days !== null && days >= 0 && days <= 7;
+    });
+    if (dueDebts.length === 0) {
+      Utils.hideLoading();
+      Utils.showToast('ℹ️ Tidak ada utang jatuh tempo dalam 7 hari', 'info');
+      return;
+    }
+    let allOk = true;
+    for (const debt of dueDebts) {
+      const days = Utils.daysUntil(debt.tanggalJatuhTempo);
+      const res = await WA.sendDebtReminder(debt, days);
+      if (!res.ok) allOk = false;
+    }
+    Utils.hideLoading();
+    Utils.showToast(allOk ? `✅ Terkirim! (${dueDebts.length} utang)` : '⚠️ Sebagian gagal', allOk ? 'success' : 'warning');
+    return;
+  } else if (type === 'balance') {
+    // Kirim ringkasan saldo semua akun
+    const accounts = DB.getAccounts().filter(a => a.status === 'Aktif');
+    const totalAset = accounts.reduce((s, a) => s + (a.saldoSekarang || 0), 0);
+    const totalUtang = DB.getDebts().filter(d => d.status === 'Aktif' && d.tipe === 'Utang').reduce((s, d) => s + d.sisa, 0);
+    const totalPiutang = DB.getDebts().filter(d => d.status === 'Aktif' && d.tipe === 'Piutang').reduce((s, d) => s + d.sisa, 0);
+    const tipeEmoji = { Bank: '🏦', Cash: '💵', 'E-wallet': '📱', Investasi: '📊' };
+    const accDetail = accounts.map(a => `${tipeEmoji[a.tipe] || '💰'} *${a.nama}*: ${Utils.formatRupiah(a.saldoSekarang)}`).join('
+');
+    const msg = `💰 *RINGKASAN SALDO*
+${new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
+
+📊 Total Aset: ${Utils.formatRupiah(totalAset)}
+
+${accDetail}
+
+💸 Total Utang: ${Utils.formatRupiah(totalUtang)}
+💰 Total Piutang: ${Utils.formatRupiah(totalPiutang)}
+
+💎 Net Worth: ${Utils.formatRupiah(totalAset - totalUtang + totalPiutang)}`;
+    r = await WA.sendCustom(msg);
+  }
+
+  Utils.hideLoading();
+  if (r?.ok) Utils.showToast('✅ Notifikasi terkirim!', 'success');
+  else Utils.showToast('❌ Gagal: ' + (r?.error || 'Unknown error'), 'error');
 }
 
 // ── SETTINGS ─────────────────────────────────────────────
@@ -2869,7 +3235,10 @@ async function saveSettings() {
   DB.saveConfig('whatsapp.apiKey', document.getElementById('set-wa-key')?.value?.trim() || '');
   DB.saveConfig('whatsapp.number', document.getElementById('set-wa-num')?.value?.trim() || '');
   DB.saveConfig('whatsapp.enabled', document.getElementById('set-wa-enabled')?.classList.contains('on'));
-  DB.saveMeta('activePeriod', document.getElementById('set-period')?.value || Utils.currentPeriod());
+  const newPeriod = document.getElementById('set-period')?.value || Utils.currentPeriod();
+  DB.saveMeta('activePeriod', newPeriod);
+  // Sync viewPeriod ke activePeriod yang baru
+  currentFilter.bulan = newPeriod;
 
   Utils.showLoading('Menyimpan pengaturan...');
   const r = await DB.push();
