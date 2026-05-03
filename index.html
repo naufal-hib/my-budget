@@ -567,7 +567,6 @@ input[type=range] { accent-color: var(--accent2); width: 100%; height: 4px; }
         <div class="icon-btn" onclick="changePeriod(-1)" title="Bulan sebelumnya">‹</div>
         <div class="icon-btn" onclick="changePeriod(1)" title="Bulan berikutnya">›</div>
         <div class="icon-btn" onclick="syncNow()" title="Sinkronisasi">⟳</div>
-        <div class="icon-btn" onclick="showCrossDeviceModal()" title="Login di HP lain" style="font-size:13px">&#x1F4F1;</div>
       </div>
     </div>
     <div class="screen-content">
@@ -833,12 +832,12 @@ input[type=range] { accent-color: var(--accent2); width: 100%; height: 4px; }
       <div class="card">
         <div class="section-title mb12">Kirim Notifikasi Sekarang</div>
         <div style="display:flex;flex-direction:column;gap:8px">
-          <div class="card-sm row-between"><div><div class="text-sm fw500">&#x1F4CA; Ringkasan Harian</div><div class="text-xs text-muted">Transaksi hari ini</div></div><button class="btn btn-primary btn-sm" onclick="kirimSekarang('daily')">Kirim</button></div>
-          <div class="card-sm row-between"><div><div class="text-sm fw500">&#x1F4C8; Ringkasan Mingguan</div><div class="text-xs text-muted">7 hari terakhir</div></div><button class="btn btn-primary btn-sm" onclick="kirimSekarang('weekly')">Kirim</button></div>
-          <div class="card-sm row-between"><div><div class="text-sm fw500">&#x1F4CB; Laporan Bulanan</div><div class="text-xs text-muted">Periode aktif</div></div><button class="btn btn-primary btn-sm" onclick="kirimSekarang('monthly')">Kirim</button></div>
-          <div class="card-sm row-between"><div><div class="text-sm fw500">&#x26A0;&#xFE0F; Cek Jatah Hampir Habis</div><div class="text-xs text-muted">Semua jatah melebihi threshold</div></div><button class="btn btn-primary btn-sm" onclick="kirimSekarang('budgetcheck')">Kirim</button></div>
-          <div class="card-sm row-between"><div><div class="text-sm fw500">&#x1F514; Reminder Utang</div><div class="text-xs text-muted">Utang jatuh tempo &lt; 7 hari</div></div><button class="btn btn-primary btn-sm" onclick="kirimSekarang('debtcheck')">Kirim</button></div>
-          <div class="card-sm row-between"><div><div class="text-sm fw500">&#x1F4B0; Ringkasan Saldo</div><div class="text-xs text-muted">Total aset semua akun</div></div><button class="btn btn-primary btn-sm" onclick="kirimSekarang('balance')">Kirim</button></div>
+          <div class="card-sm row-between"><div><div class="text-sm fw500">📊 Ringkasan Harian</div><div class="text-xs text-muted">Transaksi hari ini</div></div><button class="btn btn-primary btn-sm" onclick="kirimSekarang('daily')">Kirim</button></div>
+          <div class="card-sm row-between"><div><div class="text-sm fw500">📈 Ringkasan Mingguan</div><div class="text-xs text-muted">7 hari terakhir</div></div><button class="btn btn-primary btn-sm" onclick="kirimSekarang('weekly')">Kirim</button></div>
+          <div class="card-sm row-between"><div><div class="text-sm fw500">📋 Laporan Bulanan</div><div class="text-xs text-muted">Periode aktif</div></div><button class="btn btn-primary btn-sm" onclick="kirimSekarang('monthly')">Kirim</button></div>
+          <div class="card-sm row-between"><div><div class="text-sm fw500">⚠️ Cek Jatah Hampir Habis</div><div class="text-xs text-muted">Semua jatah melebihi threshold</div></div><button class="btn btn-primary btn-sm" onclick="kirimSekarang('budgetcheck')">Kirim</button></div>
+          <div class="card-sm row-between"><div><div class="text-sm fw500">🔔 Reminder Utang</div><div class="text-xs text-muted">Utang jatuh tempo &lt; 7 hari</div></div><button class="btn btn-primary btn-sm" onclick="kirimSekarang('debtcheck')">Kirim</button></div>
+          <div class="card-sm row-between"><div><div class="text-sm fw500">💰 Ringkasan Saldo</div><div class="text-xs text-muted">Total aset semua akun</div></div><button class="btn btn-primary btn-sm" onclick="kirimSekarang('balance')">Kirim</button></div>
         </div>
       </div>
 
@@ -890,7 +889,7 @@ input[type=range] { accent-color: var(--accent2); width: 100%; height: 4px; }
         <div style="display:flex;gap:8px;margin-top:12px">
           <button class="btn btn-ghost" style="flex:1" onclick="resetWATemplate()">Reset</button>
           <button class="btn btn-ghost" style="flex:1" onclick="saveWATemplate()">Simpan</button>
-          <button class="btn btn-success" style="flex:1" onclick="sendWATest()">Test &#x25B6;</button>
+          <button class="btn btn-success" style="flex:1" onclick="sendWATest()">Test ▶</button>
         </div>
       </div>
     </div>
@@ -976,7 +975,6 @@ input[type=range] { accent-color: var(--accent2); width: 100%; height: 4px; }
           <button class="btn btn-ghost" style="flex:1;font-size:12px" onclick="testGithubConnection()">Test Koneksi</button>
           <button class="btn btn-ghost" style="flex:1;font-size:12px" onclick="syncNow()">Sync Sekarang</button>
         </div>
-        <button class="btn btn-primary btn-full" style="margin-top:10px;font-size:13px" onclick="showCrossDeviceModal()">&#x1F4F1; Login di Device / HP Lain</button>
       </div>
 
       <!-- WhatsApp -->
@@ -1671,41 +1669,32 @@ let trxEditId = null;
 
 // ── Init ──────────────────────────────────────────────────
 async function initApp() {
-  // ── Cek URL hash untuk auto-login lintas device ──
-  if (window.location.hash && window.location.hash.startsWith('#login=')) {
+  // Handle URL hash login (#login=base64payload)
+  if (window.location.hash && window.location.hash.indexOf('#login=') === 0) {
     try {
-      var hashData = window.location.hash.slice(7); // remove '#login='
-      var decoded  = atob(hashData);
-      var parts    = decoded.split('|');
-      if (parts.length >= 2) {
-        var hashRepo  = parts[0];
-        var hashToken = parts.slice(1).join('|'); // token bisa mengandung |
-        if (hashRepo && hashToken) {
-          // Simpan credentials
-          localStorage.setItem('dompetku_v3_token',     hashToken);
-          localStorage.setItem('dompetku_v3_quickrepo', hashRepo);
-          // Bersihkan hash dari URL (keamanan)
-          history.replaceState(null, '', window.location.pathname);
-          // Load dari GitHub langsung
-          DB._setCredentials(hashRepo, hashToken);
-          var pullR = await DB.pull();
-          if (pullR.ok && DB.getMeta() && DB.getMeta().version) {
-            DB.syncAllocations();
-            document.getElementById('app').style.display = 'flex';
-            updatePeriod();
-            renderAll();
-            Utils.showToast('Login via link berhasil!', 'success');
-            WA.checkReminders();
-            return;
-          }
+      var decoded = atob(window.location.hash.slice(7));
+      var sepIdx  = decoded.indexOf('|');
+      if (sepIdx > 0) {
+        var hashRepo  = decoded.slice(0, sepIdx);
+        var hashToken = decoded.slice(sepIdx + 1);
+        history.replaceState(null, '', window.location.pathname);
+        localStorage.setItem('dompetku_v3_token', hashToken);
+        localStorage.setItem('dompetku_v3_quickrepo', hashRepo);
+        DB._setCredentials(hashRepo, hashToken);
+        var pullR = await DB.pull();
+        if (pullR.ok && DB.getMeta() && DB.getMeta().version) {
+          DB.syncAllocations();
+          document.getElementById('app').style.display = 'flex';
+          updatePeriod(); renderAll(); WA.checkReminders();
+          Utils.showToast('Login via link berhasil!', 'success');
+          return;
         }
       }
-    } catch(hashErr) {
-      console.warn('Hash login error:', hashErr.message);
+    } catch(e) {
       history.replaceState(null, '', window.location.pathname);
+      console.warn('Hash login error:', e.message);
     }
   }
-
   const localOk = DB.loadLocal();
 
   if (!localOk) {
@@ -1744,7 +1733,7 @@ function showQuickConnect(repo, token) {
   }
   qc.style.display = 'flex';
   var r = repo || '';
-  qc.innerHTML = '<div style="font-size:52px;margin-bottom:20px">&#128176;</div>'
+  qc.innerHTML = '<div style="font-size:52px;margin-bottom:20px">💰</div>'
     + '<div style="font-size:20px;font-weight:600;margin-bottom:8px;color:var(--text)">Dompet Ku</div>'
     + '<div style="font-size:13px;color:var(--text2);text-align:center;margin-bottom:32px;line-height:1.7">Device baru terdeteksi.<br>Masukkan GitHub Token untuk<br>mengambil data kamu.</div>'
     + '<div style="width:100%;margin-bottom:12px"><div style="font-size:11px;color:var(--text2);margin-bottom:6px">GitHub Repo</div>'
@@ -2869,98 +2858,6 @@ async function deleteCat(id) {
   });
 }
 
-// ── WHATSAPP PAGE ─────────────────────────────────────────
-function renderWAPage() {
-  const cfg = DB.getConfig().whatsapp;
-  const sch = cfg?.schedule || {};
-
-  document.getElementById('wa-status').textContent = cfg?.enabled ? '● Aktif' : '● Nonaktif';
-  document.getElementById('wa-status').style.color = cfg?.enabled ? 'var(--green)' : 'var(--text3)';
-
-  const toggles = [
-    ['wa-tog-daily', 'dailyEnabled'], ['wa-tog-weekly', 'weeklyEnabled'],
-    ['wa-tog-monthly', 'monthlyEnabled'], ['wa-tog-budget', 'budgetWarningEnabled'],
-    ['wa-tog-debt', 'debtReminderEnabled']
-  ];
-  toggles.forEach(([elId, key]) => {
-    const el = document.getElementById(elId);
-    if (!el) return;
-    el.className = `toggle ${sch[key] !== false ? 'on' : 'off'}`;
-    el.innerHTML = '<div class="toggle-thumb"></div>';
-  });
-
-  document.getElementById('wa-daily-time').value = sch.dailyTime || '08:00';
-  document.getElementById('wa-weekly-time').value = sch.weeklyTime || '07:00';
-  document.getElementById('wa-weekly-day').value = sch.weeklyDay || '1';
-  document.getElementById('wa-budget-threshold').value = sch.budgetWarningThreshold || 80;
-  renderWATemplatePreview();
-}
-
-function renderWATemplatePreview() {
-  const key = document.getElementById('wa-tpl-select')?.value || 'daily';
-  const cfg = DB.getConfig().whatsapp;
-  const tpl = cfg?.templates?.[key] || '';
-  document.getElementById('wa-tpl-text').value = tpl;
-
-  const previewVars = {
-    tanggal: Utils.formatDate(Utils.today(), {long:true}), pemasukan: 'Rp 0', pengeluaran: 'Rp 85.000',
-    saldo: '-Rp 85.000', top_kategori: '1. Makanan: Rp 50.000\n2. Transport: Rp 35.000',
-    pesan_motivasi: 'Tetap semangat! 💪', minggu_ke: '1', bulan: 'Mei 2026',
-    periode: Utils.formatMonthYear(DB.getMeta().activePeriod), saving_rate: '0',
-    detail_jatah: '• Pengeluaran Dasar: 70%', nama_jatah: 'Pengeluaran Dasar',
-    persen: '85', alokasi: 'Rp 700.000', terpakai: 'Rp 595.000', sisa: 'Rp 105.000',
-    nama_pihak: 'Om Adi', hari: '7', jatuh_tempo: '30 Sep 2026'
-  };
-  let preview = tpl;
-  Object.entries(previewVars).forEach(([k, v]) => { preview = preview.replaceAll(`{${k}}`, v); });
-  document.getElementById('wa-preview').textContent = preview;
-}
-
-async function saveWASchedule() {
-  const sch = {
-    dailyEnabled: document.getElementById('wa-tog-daily')?.classList.contains('on'),
-    dailyTime: document.getElementById('wa-daily-time')?.value || '08:00',
-    weeklyEnabled: document.getElementById('wa-tog-weekly')?.classList.contains('on'),
-    weeklyDay: document.getElementById('wa-weekly-day')?.value || '1',
-    weeklyTime: document.getElementById('wa-weekly-time')?.value || '07:00',
-    monthlyEnabled: document.getElementById('wa-tog-monthly')?.classList.contains('on'),
-    monthlyDay: '1', monthlyTime: '07:00',
-    budgetWarningEnabled: document.getElementById('wa-tog-budget')?.classList.contains('on'),
-    budgetWarningThreshold: parseInt(document.getElementById('wa-budget-threshold')?.value) || 80,
-    debtReminderEnabled: document.getElementById('wa-tog-debt')?.classList.contains('on'),
-    debtReminderDays: [7, 3, 1]
-  };
-  DB.saveConfig('whatsapp.schedule', sch);
-  Utils.showLoading('Menyimpan...');
-  await DB.push();
-  Utils.hideLoading();
-  Utils.showToast('Jadwal notifikasi tersimpan ✓', 'success');
-}
-
-async function saveWATemplate() {
-  const key = document.getElementById('wa-tpl-select')?.value;
-  const tpl = document.getElementById('wa-tpl-text')?.value;
-  DB.saveConfig(`whatsapp.templates.${key}`, tpl);
-  Utils.showLoading('Menyimpan...');
-  await DB.push();
-  Utils.hideLoading();
-  Utils.showToast('Template tersimpan ✓', 'success');
-  renderWATemplatePreview();
-}
-
-async function sendWATest() {
-  const key = document.getElementById('wa-tpl-select')?.value || 'daily';
-  Utils.showLoading('Mengirim...');
-  let r;
-  if (key === 'daily') r = await WA.sendDaily();
-  else if (key === 'weekly') r = await WA.sendWeekly();
-  else if (key === 'monthly') r = await WA.sendMonthly();
-  else r = await WA.sendCustom(document.getElementById('wa-tpl-text')?.value || 'Test dari Dompet Ku');
-  Utils.hideLoading();
-  if (r.ok) Utils.showToast('Pesan terkirim! 🎉', 'success');
-  else Utils.showToast('Gagal kirim: ' + r.error, 'error');
-}
-
 // ── SETTINGS ─────────────────────────────────────────────
 function renderSettings() {
   const cfg = DB.getConfig();
@@ -3071,11 +2968,11 @@ function renderReports() {
 // ═══════════════════════════════════════════════════
 
 var WA_DEFAULTS = {
-  daily:         "&#x1F4CA; *RINGKASAN HARIAN*\n{tanggal}\n\nMasuk: {pemasukan}\nKeluar: {pengeluaran}\nSaldo Hari Ini: {saldo}\n\nTop Pengeluaran:\n{top_kategori}\n\n{pesan_motivasi}",
-  weekly:        "&#x1F4C8; *RINGKASAN MINGGUAN*\nMinggu {minggu_ke}, {bulan}\n\nMasuk: {pemasukan}\nKeluar: {pengeluaran}\nSelisih: {saldo}\n\nTop Pengeluaran:\n{top_kategori}\n\n{pesan_motivasi}",
-  monthly:       "&#x1F4CB; *LAPORAN BULANAN*\nPeriode: {periode}\n\nPemasukan: {pemasukan}\nPengeluaran: {pengeluaran}\nSaving Rate: {saving_rate}%\n\nPer Jatah:\n{detail_jatah}\n\n{pesan_motivasi}",
-  budgetWarning: "&#x26A0;&#xFE0F; *JATAH HAMPIR HABIS*\n\nJatah *{nama_jatah}* sudah {persen}% terpakai!\nAlokasi: {alokasi}\nTerpakai: {terpakai}\nSisa: {sisa}\n\nBijak ya dalam belanja!",
-  debtReminder:  "&#x1F514; *REMINDER UTANG*\n\nUtang ke *{nama_pihak}* jatuh tempo {hari} hari lagi.\nJatuh Tempo: {jatuh_tempo}\nSisa: {sisa}\n\nJangan lupa ya!"
+  daily:         "📊 *RINGKASAN HARIAN*\n{tanggal}\n\n💰 Masuk: {pemasukan}\n💸 Keluar: {pengeluaran}\n💵 Saldo: {saldo}\n\nTop Pengeluaran:\n{top_kategori}\n\n{pesan_motivasi}",
+  weekly:        "📈 *RINGKASAN MINGGUAN*\nMinggu {minggu_ke}, {bulan}\n\n💰 Masuk: {pemasukan}\n💸 Keluar: {pengeluaran}\n💵 Selisih: {saldo}\n\nTop Pengeluaran:\n{top_kategori}\n\n{pesan_motivasi}",
+  monthly:       "📋 *LAPORAN BULANAN*\nPeriode: {periode}\n\n💰 Pemasukan: {pemasukan}\n💸 Pengeluaran: {pengeluaran}\n💵 Saving Rate: {saving_rate}%\n\nPer Jatah:\n{detail_jatah}\n\n{pesan_motivasi}",
+  budgetWarning: "⚠️ *JATAH HAMPIR HABIS*\n\nJatah *{nama_jatah}* sudah {persen}% terpakai!\n💰 Alokasi: {alokasi}\n💸 Terpakai: {terpakai}\n💵 Sisa: {sisa}\n\nBijak ya dalam belanja 🙏",
+  debtReminder:  "🔔 *REMINDER UTANG*\n\nUtang ke *{nama_pihak}* jatuh tempo {hari} hari lagi.\n📅 Jatuh Tempo: {jatuh_tempo}\n💰 Sisa: {sisa}\n\nJangan lupa ya! 💪"
 };
 
 function renderWAPage() {
@@ -3228,6 +3125,12 @@ async function kirimSekarang(type) {
   Utils.showToast((r && r.ok) ? 'Notifikasi terkirim!' : 'Gagal: ' + ((r && r.error) || 'Error'), (r && r.ok) ? 'success' : 'error');
 }
 
+function closeCDModal() {
+  var m = document.getElementById('modal-crossdevice');
+  if (m) m.remove();
+}
+
+
 // ═══════════════════════════════════════════════════
 // CROSS-DEVICE LOGIN: QR CODE & LINK
 // ═══════════════════════════════════════════════════
@@ -3237,77 +3140,51 @@ function getLoginUrl() {
   var repo  = cfg.github && cfg.github.repo  ? cfg.github.repo  : '';
   var token = localStorage.getItem('dompetku_v3_token') || '';
   if (!repo || !token) return null;
-  var payload  = btoa(repo + '|' + token);
-  var baseUrl  = window.location.origin + window.location.pathname;
-  return baseUrl + '#login=' + payload;
+  var payload = btoa(repo + '|' + token);
+  return window.location.origin + window.location.pathname + '#login=' + payload;
 }
 
 function showCrossDeviceModal() {
   var cfg   = DB.getConfig();
   var repo  = cfg.github && cfg.github.repo ? cfg.github.repo : '';
   var token = localStorage.getItem('dompetku_v3_token') || '';
-
-  if (!repo || !token) {
-    Utils.showToast('Lengkapi GitHub repo & token di Pengaturan dulu!', 'error');
-    return;
-  }
-
+  if (!repo || !token) { Utils.showToast('Lengkapi GitHub repo & token di Pengaturan dulu!', 'error'); return; }
   var loginUrl = getLoginUrl();
   var existing = document.getElementById('modal-crossdevice');
   if (existing) existing.remove();
-
   var modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.id = 'modal-crossdevice';
   modal.innerHTML =
     '<div class="modal-box" style="max-height:90vh;overflow-y:auto">'
     + '<div class="modal-handle"></div>'
-    + '<div class="modal-title">Login di Device Lain</div>'
-
-    // Info
+    + '<div class="modal-title">\U0001f4f1 Login di Device Lain</div>'
     + '<div class="card-sm" style="background:rgba(251,191,36,.08);border-color:rgba(251,191,36,.2);margin-bottom:16px">'
-    + '<div class="text-xs" style="color:var(--yellow);line-height:1.7">'
-    + '<b>Keamanan:</b> Link & QR berisi token GitHub kamu. Jangan bagikan ke orang lain. '
-    + 'Gunakan hanya untuk device milikmu sendiri.'
-    + '</div></div>'
-
-    // Tab selector
-    + '<div class="tabs mb16" id="cd-tabs">'
+    + '<div class="text-xs" style="color:var(--yellow);line-height:1.7">Token GitHub ada di link/QR ini. Gunakan hanya di device milikmu sendiri. Jangan bagikan ke orang lain.</div></div>'
+    + '<div class="tabs mb12" id="cd-tabs">'
     + '<button class="tab active" id="cd-btn-qr" onclick="switchCDTab(this)">QR Code</button>'
     + '<button class="tab" id="cd-btn-link" onclick="switchCDTab(this)">Copy Link</button>'
     + '</div>'
-
-    // QR Tab
     + '<div id="cd-tab-qr">'
-    + '<p class="text-xs text-muted mb12" style="text-align:center;line-height:1.6">Scan QR ini dari HP kamu.<br>Otomatis login tanpa perlu ketik apapun.</p>'
-    + '<div id="qr-container" style="display:flex;justify-content:center;align-items:center;padding:20px;background:#fff;border-radius:14px;margin-bottom:12px;min-height:220px">'
-    + '<div class="text-xs text-muted">Membuat QR Code...</div>'
-    + '</div>'
-    + '<p class="text-xs text-muted" style="text-align:center">QR Code berlaku selama token GitHub aktif</p>'
-    + '</div>'
-
-    // Link Tab
+    + '<p class="text-xs text-muted mb12" style="text-align:center;line-height:1.6">Scan QR dari HP kamu.<br>Otomatis login tanpa ketik apapun.</p>'
+    + '<div id="qr-container" style="display:flex;justify-content:center;padding:20px;background:#fff;border-radius:14px;margin-bottom:12px;min-height:220px;align-items:center">'
+    + '<div class="text-xs" style="color:#666">Membuat QR...</div>'
+    + '</div></div>'
     + '<div id="cd-tab-link" style="display:none">'
-    + '<p class="text-xs text-muted mb12" style="line-height:1.6">Kirim link ini ke HP kamu (via WA, email, Notes, dll). Klik link → langsung masuk.</p>'
-    + '<div class="inp" style="word-break:break-all;font-size:11px;padding:10px;color:var(--text2);min-height:60px;cursor:pointer;user-select:all" onclick="copyLoginLink()" id="link-display">'
-    + (loginUrl || '')
-    + '</div>'
+    + '<p class="text-xs text-muted mb8" style="line-height:1.6">Kirim link ini ke HP kamu (WA, email, Notes). Klik link langsung masuk.</p>'
+    + '<div class="inp" id="link-display" style="word-break:break-all;font-size:11px;color:var(--text2);min-height:60px;cursor:pointer;user-select:all" onclick="copyLoginLink()">' + (loginUrl||'') + '</div>'
     + '<button class="btn btn-primary btn-full" style="margin-top:10px" onclick="copyLoginLink()">Salin Link</button>'
     + '<button class="btn btn-ghost btn-full" style="margin-top:8px;font-size:12px" onclick="sendLoginLinkWA()">Kirim via WhatsApp</button>'
     + '</div>'
-
     + '<button class="btn btn-ghost btn-full" style="margin-top:16px" onclick="closeCDModal()">Tutup</button>'
     + '</div>';
-
   document.body.appendChild(modal);
-  modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
-
-  // Generate QR after modal rendered
-  setTimeout(function() { generateQRCode(loginUrl); }, 100);
+  modal.onclick = function(e){ if(e.target===modal) modal.remove(); };
+  setTimeout(function(){ generateQRCode(loginUrl); }, 150);
 }
 
 function switchCDTab(btn) {
-  document.querySelectorAll('#cd-tabs .tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('#cd-tabs .tab').forEach(function(t){ t.classList.remove('active'); });
   btn.classList.add('active');
   var isQR = btn.id === 'cd-btn-qr';
   document.getElementById('cd-tab-qr').style.display   = isQR ? '' : 'none';
@@ -3316,19 +3193,12 @@ function switchCDTab(btn) {
 
 function generateQRCode(url) {
   var container = document.getElementById('qr-container');
-  if (!container) return;
-
-  // Load QRCode.js dari CDN
-  if (typeof QRCode !== 'undefined') {
-    renderQR(container, url);
-    return;
-  }
-
+  if (!container || !url) return;
+  if (typeof QRCode !== 'undefined') { renderQR(container, url); return; }
   var script = document.createElement('script');
   script.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
-  script.onload = function() { renderQR(container, url); };
-  script.onerror = function() {
-    // Fallback: gunakan Google Charts API
+  script.onload  = function(){ renderQR(container, url); };
+  script.onerror = function(){
     container.innerHTML = '<img src="https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=' + encodeURIComponent(url) + '&choe=UTF-8" style="border-radius:8px" width="200" height="200">';
   };
   document.head.appendChild(script);
@@ -3336,49 +3206,32 @@ function generateQRCode(url) {
 
 function renderQR(container, url) {
   container.innerHTML = '<canvas id="qr-canvas"></canvas>';
-  QRCode.toCanvas(document.getElementById('qr-canvas'), url, {
-    width: 200,
-    margin: 2,
-    color: { dark: '#000000', light: '#ffffff' }
-  }, function(err) {
-    if (err) {
-      container.innerHTML = '<div class="text-xs text-red">Gagal generate QR: ' + err.message + '</div>';
-    }
+  QRCode.toCanvas(document.getElementById('qr-canvas'), url, { width:200, margin:2, color:{dark:'#000',light:'#fff'} }, function(err){
+    if (err) container.innerHTML = '<div style="color:red;font-size:12px">Gagal: '+err.message+'</div>';
   });
 }
 
 function copyLoginLink() {
   var url = getLoginUrl();
   if (!url) return;
-  navigator.clipboard.writeText(url).then(function() {
-    Utils.showToast('Link disalin!', 'success');
-  }).catch(function() {
-    // Fallback for older browsers
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(function(){ Utils.showToast('Link disalin!', 'success'); });
+  } else {
     var ta = document.createElement('textarea');
-    ta.value = url;
-    ta.style.position = 'fixed';
-    ta.style.opacity = '0';
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    Utils.showToast('Link disalin!', 'success');
-  });
+    ta.value = url; ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta); Utils.showToast('Link disalin!', 'success');
+  }
 }
 
 async function sendLoginLinkWA() {
   var url = getLoginUrl();
   if (!url) return;
-  var msg = 'Login Dompet Ku di device ini:\n' + url + '\n\nKlik link di atas untuk langsung masuk.';
+  var msg = 'Login Dompet Ku:\n' + url + '\n\nKlik link untuk langsung masuk.';
   Utils.showLoading('Mengirim...');
   var r = await WA.sendCustom(msg);
   Utils.hideLoading();
-  Utils.showToast(r.ok ? 'Link dikirim via WA!' : 'Gagal: ' + r.error, r.ok ? 'success' : 'error');
-}
-
-function closeCDModal() {
-  var m = document.getElementById('modal-crossdevice');
-  if (m) m.remove();
+  Utils.showToast(r.ok ? 'Link dikirim via WA!' : 'Gagal: '+r.error, r.ok?'success':'error');
 }
 
 async function forcePushData() {
